@@ -62,8 +62,7 @@ module Swineherd
         end
 
         sh command do |ok, status|
-          Log.debug("Exit status was #{ok}, result was #{res}")
-          ok or raise "#{mode.to_s.capitalize} mode script failed with exit status #{ok}"
+          ok or raise "#{mode.to_s.capitalize} mode script failed with exit status #{status}"
         end
       end
 
