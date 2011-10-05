@@ -8,10 +8,10 @@ Gem::Specification.new do |s|
   s.version = "0.0.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Jacob Perkins"]
+  s.authors = ["Jacob Perkins","Infochimps"]
   s.date = %q{2011-10-05}
   s.description = %q{Swineherd is for running scripts and workflows on filesystems.}
-  s.email = %q{jacob.a.perkins@gmail.com}
+  s.email = ["jacob.a.perkins@gmail.com","coders@infochimps.com"]
   s.executables = ["hdp-tree", "hadoop-stream"]
   s.extra_rdoc_files = [
     "LICENSE",
