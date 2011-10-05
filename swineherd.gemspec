@@ -5,11 +5,12 @@
 
 Gem::Specification.new do |s|
   s.name = %q{swineherd}
-  s.version = "0.0.4"
+  s.version = "0.0.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jacob Perkins"]
   s.date = %q{2011-06-22}
+  s.date = %q{2011-10-05}
   s.description = %q{Swineherd is for running scripts and workflows on filesystems.}
   s.email = %q{jacob.a.perkins@gmail.com}
   s.executables = ["hdp-tree", "hadoop-stream"]
@@ -53,14 +54,13 @@ Gem::Specification.new do |s|
     "tests/test_s3_filesystem.rb",
     "tests/testcfg.yaml"
   ]
-  s.homepage = %q{http://github.com/Ganglion/swineherd}
+  s.homepage = "http://github.com/Ganglion/swineherd"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.7}
   s.summary = %q{Flexible data workflow glue.}
 
   if s.respond_to? :specification_version then
-    current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
