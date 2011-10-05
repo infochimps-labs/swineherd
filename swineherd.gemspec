@@ -9,7 +9,6 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jacob Perkins"]
-  s.date = %q{2011-06-22}
   s.date = %q{2011-10-05}
   s.description = %q{Swineherd is for running scripts and workflows on filesystems.}
   s.email = %q{jacob.a.perkins@gmail.com}
@@ -54,7 +53,7 @@ Gem::Specification.new do |s|
     "tests/test_s3_filesystem.rb",
     "tests/testcfg.yaml"
   ]
-  s.homepage = "http://github.com/Ganglion/swineherd"
+  s.homepage = %q{http://github.com/Ganglion/swineherd}
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.7}
