@@ -14,10 +14,12 @@ module Swineherd
     #
     # Initialize a new hadoop file system, needs path to hadoop configuration
     #
-    def initialize *args
+    def initialize params={}, *args
       check_and_set_environment
       @conf = Java::org.apache.hadoop.conf.Configuration.new
-      @hdfs = Java::org.apache.hadoop.fs.FileSystem.get(@conf)
+      uri = Java::java.net.URI.new params[:filesystem] if params[:filesystem]
+      fs_params = uri ? [ uri, @conf ] : [ @conf ]
+      @hdfs = Java::org.apache.hadoop.fs.FileSystem.get *fs_params
     end
 
     #
