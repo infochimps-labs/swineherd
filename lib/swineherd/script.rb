@@ -7,12 +7,17 @@ module Swineherd
 
     module Common
       
-      attr_accessor :input, :output, :options, :attributes
-      def initialize(source, input = [], output = [], options = {}, attributes ={})
-        @source     = source
-        @input      = input
-        @output     = output
-        @options    = options
+      attr_accessor :options, :attributes
+      
+      def initialize(source,
+                     input_templates = [],
+                     output_templates = [],
+                     options = {},
+                     attributes ={})
+        @source = source
+        @input_templates = input_templates
+        @output_templates = output_templates
+        @options = options
         @attributes = attributes
       end
 
@@ -32,8 +37,8 @@ module Swineherd
       #
       def refresh!
         @script = nil
-        @output = []
-        @input  = []
+        @outputs = []
+        @inputs  = []
       end
 
       #
@@ -52,20 +57,39 @@ module Swineherd
         raise "Override this in subclass!"
       end
 
+      def substitute templates
+        templates.collect do |input|
+          r = input.scan(/([^$]*)(\$(?:\{\w+\}|\w+))?/).collect do |novar, var|
+            "#{novar}#{@options[var.gsub(/[\$\{\}]/, '')] if var}"
+          end
+          
+          r.inject :+
+        end
+      end
+      
+      def inputs
+        return substitute @input_templates
+      end
+
+      
+      def outputs
+        return substitute @output_templates
+      end
+      
       #
       # Default is to run with hadoop
       #
-      def run mode=:hadoop
+      def run
+        mode = options[:mode] || :hadoop
         command = case mode
-        when :local then local_cmd
-        when :hadoop then cmd
-        end
+                  when :local then local_cmd
+                  when :hadoop then cmd
+                  end
 
         sh command do |ok, status|
           ok or raise "#{mode.to_s.capitalize} mode script failed with exit status #{status}"
         end
       end
-
     end
   end
 end
