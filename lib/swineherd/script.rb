@@ -20,6 +20,8 @@ module Swineherd
         @output_templates = output
         @options = options
         @attributes = attributes
+        @fs = Swineherd::FileSystem.get options[:fstype]
+
         self.instance_eval &blk
       end
 
@@ -94,6 +96,14 @@ module Swineherd
       # Default is to run with hadoop
       #
       def run
+        outputs.each do |output|
+          success_dir = File.join output, "_SUCCESS"
+          if @fs.exists? success_dir then
+            Log.info "I see #{success_dir}. skipping stage."
+            return
+          end
+        end
+
         mode = @options[:mode] || :hadoop
         command = case mode
                   when :local then local_cmd
