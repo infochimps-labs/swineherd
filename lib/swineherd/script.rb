@@ -8,20 +8,27 @@ module Swineherd
     module Common
       
       attr_accessor :options, :attributes
-      attr_accessor :input_templates, :output_templates
-      
+
       def initialize(source,
-                     input_templates = [],
-                     output_templates = [],
+                     input = [],
+                     output = [],
                      options = {},
                      attributes ={},
                      &blk)
         @source = source
-        @input_templates = input_templates
-        @output_templates = output_templates
+        @input_templates = input
+        @output_templates = output
         @options = options
         @attributes = attributes
         self.instance_eval &blk
+      end
+
+      def input_templates input
+        @input_templates = input
+      end
+
+      def output_templates output
+        @output_templates = output
       end
 
       #
