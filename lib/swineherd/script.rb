@@ -8,21 +8,24 @@ module Swineherd
     module Common
       
       attr_accessor :options, :attributes
+      attr_accessor :input_templates, :output_templates
       
       def initialize(source,
                      input_templates = [],
                      output_templates = [],
                      options = {},
-                     attributes ={})
+                     attributes ={},
+                     &blk)
         @source = source
         @input_templates = input_templates
         @output_templates = output_templates
         @options = options
         @attributes = attributes
+        self.instance_eval &blk
       end
 
       #
-      # Allows for setting the environment the script will be ran in
+      # Allows for setting the environment the script will be run in
       #
       def env
         ENV

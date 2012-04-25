@@ -17,13 +17,13 @@ module Swineherd::Script
 
     def cmd
       Log.info("Launching Wukong script in hadoop mode")
-      "ruby #{script} #{wukong_args(@options)} --run #{inputs.join(',')} #{output.join(',')}"
+      "ruby #{script} #{wukong_args(@options)} --run #{inputs.join(',')} #{outputs.join(',')}"
     end
 
     def local_cmd
       #inputs = inputs.map{|path| path += File.directory?(path) ? "/*" : ""}.join(',')
       Log.info("Launching Wukong script in local mode")
-      "ruby #{script} #{wukong_args(@options)} --run=local #{inputs} #{output.join(',')}"
+      "ruby #{script} #{wukong_args(@options)} --run=local #{inputs} #{outputs.join(',')}"
     end
 
   end

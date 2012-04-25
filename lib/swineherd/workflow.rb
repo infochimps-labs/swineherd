@@ -66,11 +66,11 @@ module Swineherd
       end
 
       script = WukongScript.new(File.join(@script_dir,
-                                          "#{name.to_s}.rb",
-                                          &blk),
+                                          "#{name.to_s}.rb"),
                                 input_templates,
                                 @intermediate_templates,
-                                @options)
+                                @options,
+                                &blk)
       
       task definition do
         script.run
