@@ -7,13 +7,13 @@ module Swineherd
 
     module Common
       
-      attr_accessor :options, :attributes
+      attr_accessor :attributes
 
       def initialize(source,
                      input = [],
                      output = [],
                      options = {},
-                     attributes ={},
+                     attributes = {},
                      &blk)
         @source = source
         @input_templates = input
@@ -21,6 +21,10 @@ module Swineherd
         @options = options
         @attributes = attributes
         self.instance_eval &blk
+      end
+
+      def options new_options
+        @options.merge! new_options
       end
 
       def input_templates input
@@ -70,9 +74,9 @@ module Swineherd
       def substitute templates
         templates.collect do |input|
           r = input.scan(/([^$]*)(\$(?:\{\w+\}|\w+))?/).collect do |novar, var|
-            "#{novar}#{@options[var.gsub(/[\$\{\}]/, '')] if var}"
+            "#{novar}#{@options[var.gsub(/[\$\{\}]/, '').to_sym] if var}"
           end
-          
+
           r.inject :+
         end
       end
@@ -90,7 +94,7 @@ module Swineherd
       # Default is to run with hadoop
       #
       def run
-        mode = options[:mode] || :hadoop
+        mode = @options[:mode] || :hadoop
         command = case mode
                   when :local then local_cmd
                   when :hadoop then cmd
