@@ -77,9 +77,11 @@ module Swineherd
       ##
       ## 2. those that are prerequisites
       remove_scope = lambda {|name| name.split(":").last.to_sym}
+
       all_tasks = Rake::Task.tasks.map(&:name).map(&remove_scope)
-      
-      are_prerequisites = Rake::Task.tasks.map do |t| t.prerequisites
+
+      are_prerequisites = Rake::Task.tasks.map do |t|
+        t.prerequisites
       end.flatten.map(&remove_scope)
 
       have_prerequisites = Rake::Task.tasks.map do |t|
@@ -94,25 +96,22 @@ module Swineherd
       ## directory:
       ##
       ## input -[stage1]-> intermediate -[stage2]-> output
-      are_prerequisites.each do |task_name|
-        @task_scripts[task_name].
-          output_templates_soft @flow_options[:intermediate_templates] 
-      end
 
-      have_prerequisites.each do |task_name|
-        @task_scripts[task_name].
-          input_templates_soft @flow_options[:intermediate_templates] 
-      end
-
-      (all_tasks - are_prerequisites).each do |task_name|
+      def soft_merge stage_param, flow_param
+        lambda do |task_name|
           @task_scripts[task_name].
-            output_templates_soft @flow_options[:output_templates] 
+            merge_options_soft(stage_param => @flow_options[flow_param])
+        end
       end
 
-      (all_tasks - have_prerequisites).each do |task_name|
-        @task_scripts[task_name].
-          input_templates_soft @flow_options[:input_templates] 
-      end
+      are_prerequisites.each(&soft_merge(:output_templates,
+                                         :intermediate_templates))
+      have_prerequisites.each(&soft_merge(:input_templates,
+                                          :intermediate_templates))
+      (all_tasks - are_prerequisites).each(&soft_merge(:output_templates,
+                                                       :output_templates))
+      (all_tasks - have_prerequisites).each(&soft_merge(:input_templates,
+                                                        :input_templates))
     end
 
     def run_stage script, name
@@ -142,6 +141,8 @@ module Swineherd
     end
 
     def wukong_stage definition, &blk
+
+      ## grab the name
       case definition
       when (Symbol || String)
         name = definition
@@ -149,13 +150,16 @@ module Swineherd
         name = definition.keys.first
       end
 
+      ## create the script
       script = WukongScript.new(File.join(@flow_options[:script_dir],
                                           "#{name.to_s}.rb"),
                                 @options,
                                 &blk)
 
+      # Rake won't remember the script, so we have to do this.
       @task_scripts[name] = script
-      
+
+      ## run it
       task definition do
         run_stage script, name
       end

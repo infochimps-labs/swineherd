@@ -2,10 +2,6 @@ require 'gorillib/hash/delete_multi'
 
 module Swineherd
   class Script
-    # autoload :WukongScript, 'swineherd/script/wukong_script'
-    # autoload :PigScript,    'swineherd/script/pig_script'
-    # autoload :RScript,      'swineherd/script/r_script'
-
     attr_accessor :attributes, :fs, :options
     attr_reader :run_mode
     protected :run_mode
@@ -17,8 +13,7 @@ module Swineherd
       @source = source
       @options = options.dup
       @attributes = attributes
-      @sub_options = {}
-      @input_templates = @output_templates = nil
+      @stage_options = {}
 
       @fs = Swineherd::FileSystem.get @options.delete(:fstype)
 
@@ -29,20 +24,8 @@ module Swineherd
       @options.merge! new_options
     end
 
-    def input_templates input
-      @input_templates = input
-    end
-
-    def output_templates output
-      @output_templates = output
-    end
-
-    def input_templates_soft input
-      @input_templates = input if not @input_templates
-    end
-
-    def output_templates_soft output
-      @output_templates = output if not @output_templates
+    def merge_options_soft new_options
+      @options.merge!(new_options) {|k,old_v,new_v| old_v}
     end
 
     #
@@ -65,17 +48,19 @@ module Swineherd
       @inputs  = []
     end
 
-    def substitute templates
-      @sub_options.merge! @options.delete_multi(
-                                                :user,
-                                                :project,
-                                                :run_number,
-                                                :epoch,
-                                                :stage
-                                                )
-      templates.collect do |input|
+    def substitute template_type
+      @stage_options.merge! @options.delete_multi(
+                                                  :user,
+                                                  :project,
+                                                  :run_number,
+                                                  :epoch,
+                                                  :stage,
+                                                  :input_templates,
+                                                  :output_templates
+                                                  )
+      @stage_options[template_type].collect do |input|
         r = input.scan(/([^$]*)(\$(?:\{\w+\}|\w+))?/).collect do |novar, var|
-          "#{novar}#{@sub_options[var.gsub(/[\$\{\}]/, '').to_sym] if var}"
+          "#{novar}#{@stage_options[var.gsub(/[\$\{\}]/, '').to_sym] if var}"
         end
 
         r.inject :+
@@ -83,11 +68,11 @@ module Swineherd
     end
     
     def inputs
-      return substitute @input_templates
+      return substitute :input_templates
     end
 
     def outputs
-      return substitute @output_templates
+      return substitute :output_templates
     end
     
   end
