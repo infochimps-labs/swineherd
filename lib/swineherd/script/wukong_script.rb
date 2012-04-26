@@ -5,6 +5,8 @@ module Swineherd::Script
     include Common
 
     def wukong_args options
+      
+
       options.map{|param,val| "--#{param}=#{val}" }.join(' ')
     end
 

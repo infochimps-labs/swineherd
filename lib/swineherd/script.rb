@@ -96,20 +96,30 @@ module Swineherd
       # Default is to run with hadoop
       #
       def run
+
+        ## skip jobs if we've already run them
         outputs.each do |output|
           success_dir = File.join output, "_SUCCESS"
           if @fs.exists? success_dir then
             Log.info "I see #{success_dir}. skipping stage."
             return
+          elsif @fs.exists? output then
+            Log.info <<-EOF
+I see #{output}, which does not have a _SUCCESS flag. I'm assuming
+this is the result of a failed hadoop job and exiting.
+EOF
+            exit -1
           end
         end
-
+          
+        ## determine whether this is a local or hadoop job
         mode = @options[:mode] || :hadoop
         command = case mode
                   when :local then local_cmd
                   when :hadoop then cmd
                   end
 
+        ## run the job
         sh command do |ok, status|
           ok or raise "#{mode.to_s.capitalize} mode script failed with exit status #{status}"
         end
