@@ -86,29 +86,29 @@ module Swineherd
         t if t.prerequisites.size == 0
       end.compact.map(&:name).map(&remove_scope)
 
-      ## The output templates of tasks that are prerequisites for
-      ## others default to the flow intermediate templates.
+      ## Once we've determined what category a task is in, we can
+      ## determine where it should look for its inputs and write its
+      ## outputs. When we launch a workflow, we want it to take input
+      ## from an input directory, write output to a series of
+      ## intermediate directories, and then output to an output
+      ## directory:
+      ##
+      ## input -[stage1]-> intermediate -[stage2]-> output
       are_prerequisites.each do |task_name|
         @task_scripts[task_name].
           output_templates_soft @flow_options[:intermediate_templates] 
       end
 
-      ## The input templates of tasks that have prerequisites default
-      ## to the flow intermediate templates.
       have_prerequisites.each do |task_name|
         @task_scripts[task_name].
           input_templates_soft @flow_options[:intermediate_templates] 
       end
 
-      ## Tasks that are not prerequisites have output templates that
-      ## default to the flow output templates.
       (all_tasks - are_prerequisites).each do |task_name|
           @task_scripts[task_name].
             output_templates_soft @flow_options[:output_templates] 
       end
 
-      ## Tasks that do not have prerequisites have input templates
-      ## that default to the flow input templates.
       (all_tasks - have_prerequisites).each do |task_name|
         @task_scripts[task_name].
           input_templates_soft @flow_options[:input_templates] 
