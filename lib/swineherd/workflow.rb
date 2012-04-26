@@ -10,7 +10,7 @@ module Swineherd
     def_delegators(:@dsl_handler,
                    :describe,
                    :run,
-                   :wukong_stage)
+                   :stage)
     
     def initialize options = {}, &blk
       @dsl_handler = WorkflowImpl.new self, options, &blk
@@ -63,34 +63,35 @@ module Swineherd
       end
     end
 
-    def wukong_stage definition, &blk
-      
-      ## grab the name
+
+    def stage cls, definition, &blk
+
+      ## extract name from definition
       case definition
-      when (Symbol || String)
+        when (Symbol || String)
         name = definition
       when Hash
         name = definition.keys.first
       end
 
       ## create the script
-      script = Stage.new(WukongScript,
-                         File.join(@flow_options[:script_dir],
-                                   "#{name.to_s}.rb"),
-                         @options,
-                         &blk)
-
-      # Rake won't remember the script, so we have to do this.
-      @stage_scripts[name] = script
+      @stage_scripts[name] = Stage.new(cls,
+                                       File.join(@flow_options[:script_dir],
+                                                 "#{name.to_s}"),
+                                       @options,
+                                       &blk)
 
       ## run it
       task definition do
-        run_stage script, name
+        run_stage @stage_scripts[name], name
       end
     end
 
     private
 
+    #
+    # runs user block given to constructor in parent's scope.
+    # 
     def finalize
       return if @finalized
 
@@ -163,7 +164,7 @@ module Swineherd
 
       ## run the job
       sh script.cmd do |ok, status|
-        ok or raise("#{mode.to_s.capitalize} mode script failed with exit "     \
+        ok or raise("Stage #{name} failed with exit "                           \
                     "status #{status}")
       end
 
