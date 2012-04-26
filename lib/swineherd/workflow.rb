@@ -1,16 +1,28 @@
+require 'forwardable'
 require 'time'
 require 'gorillib/datetime/flat'
 require 'gorillib/hash/delete_multi'
 
 module Swineherd
   class Workflow
+    extend Forwardable
 
-    attr_accessor :workdir, :outputs, :output_counts
+    def_delegators(:@dsl_handler,
+                   :describe,
+                   :run,
+                   :wukong_stage)
     
-    #
-    # Create a new workflow and new namespace for this workflow
-    #
     def initialize options = {}, &blk
+      @dsl_handler = WorkflowImpl.new self, options, &blk
+    end
+  end
+    
+  class WorkflowImpl
+
+    public
+
+    def initialize parent, options = {}, &blk
+      @blk = blk
       @options = options
       @options.merge! :epoch => Time.now.to_flat
 
@@ -25,12 +37,55 @@ module Swineherd
       @output_counts = Hash.new{|h,k| h[k] = 0}
       @outputs       = Hash.new{|h,k| h[k] = []}
       @task_scripts = {}
-      namespace @flow_options[:project] do
-        self.instance_eval(&blk)
+      @finalized = false
+      @parent = parent
+    end
+
+    #
+    # Runs workflow starting with taskname
+    #
+    def run taskname
+      finalize
+
+      Log.info "Launching workflow task #{@flow_options[:project]}:#{taskname} ..."
+      Rake::Task["#{@flow_options[:project]}:#{taskname}"].invoke
+      Log.info "Workflow task #{@flow_options[:project]}:#{taskname} finished"
+    end
+
+    #
+    # Describes the dependency tree of all tasks belonging to self
+    #
+    def describe
+      finalize
+
+      Rake::Task.tasks.each do |t|
+        Log.info("Task: #{t.name} [#{t.inspect}]") if t.name =~ /#{@flow_options[:project]}/
+      end
+    end
+
+    def wukong_stage definition, &blk
+      
+      ## grab the name
+      case definition
+      when (Symbol || String)
+        name = definition
+      when Hash
+        name = definition.keys.first
       end
 
-      self.finalize
-      
+      ## create the script
+      script = WukongScript.new(File.join(@flow_options[:script_dir],
+                                          "#{name.to_s}.rb"),
+                                @options,
+                                &blk)
+
+      # Rake won't remember the script, so we have to do this.
+      @task_scripts[name] = script
+
+      ## run it
+      task definition do
+        run_stage script, name
+      end
     end
 
     #
@@ -50,32 +105,21 @@ module Swineherd
       @outputs[taskname].last
     end
 
-    #
-    # Runs workflow starting with taskname
-    #
-    def run taskname
-      Log.info "Launching workflow task #{@flow_options[:project]}:#{taskname} ..."
-      Rake::Task["#{@flow_options[:project]}:#{taskname}"].invoke
-      Log.info "Workflow task #{@flow_options[:project]}:#{taskname} finished"
-    end
-
-    #
-    # Describes the dependency tree of all tasks belonging to self
-    #
-    def describe
-      Rake::Task.tasks.each do |t|
-        Log.info("Task: #{t.name} [#{t.inspect}]") if t.name =~ /#{@flow_options[:project]}/
-      end
-    end
+    private
 
     def finalize
+      return if @finalized
+
+      namespace @flow_options[:project] do
+        @parent.instance_eval(&@blk)
+      end
 
       ## Sort task names into two non-exhaustive and overlapping
       ## categories:
       ##
       ## 1. those that have prerequisites
-      ##
       ## 2. those that are prerequisites
+      
       remove_scope = lambda {|name| name.split(":").last.to_sym}
 
       all_tasks = Rake::Task.tasks.map(&:name).map(&remove_scope)
@@ -112,6 +156,8 @@ module Swineherd
                                                        :output_templates))
       (all_tasks - have_prerequisites).each(&soft_merge(:input_templates,
                                                         :input_templates))
+
+      @finalized = true
     end
 
     def run_stage script, name
@@ -140,29 +186,5 @@ module Swineherd
 
     end
 
-    def wukong_stage definition, &blk
-
-      ## grab the name
-      case definition
-      when (Symbol || String)
-        name = definition
-      when Hash
-        name = definition.keys.first
-      end
-
-      ## create the script
-      script = WukongScript.new(File.join(@flow_options[:script_dir],
-                                          "#{name.to_s}.rb"),
-                                @options,
-                                &blk)
-
-      # Rake won't remember the script, so we have to do this.
-      @task_scripts[name] = script
-
-      ## run it
-      task definition do
-        run_stage script, name
-      end
-    end
   end
 end
