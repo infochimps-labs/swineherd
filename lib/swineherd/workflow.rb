@@ -4,6 +4,7 @@ require 'gorillib/hash/delete_multi'
 
 module Swineherd
   class Workflow
+
     attr_accessor :workdir, :outputs, :output_counts
     
     #
@@ -13,7 +14,7 @@ module Swineherd
       @options = options
       @options.merge! :epoch => Time.now.to_flat
 
-      @stage_options = options.delete_multi(
+      @flow_options = options.delete_multi(
                                             :project,
                                             :script_dir,
                                             :input_templates,
@@ -23,9 +24,13 @@ module Swineherd
 
       @output_counts = Hash.new{|h,k| h[k] = 0}
       @outputs       = Hash.new{|h,k| h[k] = []}
-      namespace @stage_options[:project] do
+      @task_scripts = {}
+      namespace @flow_options[:project] do
         self.instance_eval(&blk)
       end
+
+      self.finalize
+      
     end
 
     #
@@ -49,9 +54,9 @@ module Swineherd
     # Runs workflow starting with taskname
     #
     def run taskname
-      Log.info "Launching workflow task #{@stage_options[:project]}:#{taskname} ..."
-      Rake::Task["#{@stage_options[:project]}:#{taskname}"].invoke
-      Log.info "Workflow task #{@stage_options[:project]}:#{taskname} finished"
+      Log.info "Launching workflow task #{@flow_options[:project]}:#{taskname} ..."
+      Rake::Task["#{@flow_options[:project]}:#{taskname}"].invoke
+      Log.info "Workflow task #{@flow_options[:project]}:#{taskname} finished"
     end
 
     #
@@ -59,7 +64,54 @@ module Swineherd
     #
     def describe
       Rake::Task.tasks.each do |t|
-        Log.info("Task: #{t.name} [#{t.inspect}]") if t.name =~ /#{@stage_options[:project]}/
+        Log.info("Task: #{t.name} [#{t.inspect}]") if t.name =~ /#{@flow_options[:project]}/
+      end
+    end
+
+    def finalize
+
+      ## Sort task names into two non-exhaustive and overlapping
+      ## categories:
+      ##
+      ## 1. those that have prerequisites
+      ##
+      ## 2. those that are prerequisites
+      remove_scope = lambda {|name| name.split(":").last.to_sym}
+      all_tasks = Rake::Task.tasks.map(&:name).map(&remove_scope)
+      
+      are_prerequisites = Rake::Task.tasks.map do |t| t.prerequisites
+      end.flatten.map(&remove_scope)
+
+      have_prerequisites = Rake::Task.tasks.map do |t|
+        t if t.prerequisites.size == 0
+      end.compact.map(&:name).map(&remove_scope)
+
+      ## The output templates of tasks that are prerequisites for
+      ## others default to the flow intermediate templates.
+      are_prerequisites.each do |task_name|
+        @task_scripts[task_name].
+          output_templates_soft @flow_options[:intermediate_templates] 
+      end
+
+      ## The input templates of tasks that have prerequisites default
+      ## to the flow intermediate templates.
+      have_prerequisites.each do |task_name|
+        @task_scripts[task_name].
+          input_templates_soft @flow_options[:intermediate_templates] 
+      end
+
+      ## Tasks that are not prerequisites have output templates that
+      ## default to the flow output templates.
+      (all_tasks - are_prerequisites).each do |task_name|
+          @task_scripts[task_name].
+            output_templates_soft @flow_options[:output_templates] 
+      end
+
+      ## Tasks that do not have prerequisites have input templates
+      ## that default to the flow input templates.
+      (all_tasks - have_prerequisites).each do |task_name|
+        @task_scripts[task_name].
+          input_templates_soft @flow_options[:input_templates] 
       end
     end
 
@@ -97,18 +149,16 @@ module Swineherd
       case definition
       when (Symbol || String)
         name = definition
-        input_templates = @stage_options[:input_templates]
       when Hash
         name = definition.keys.first
-        input_templates = @stage_options[:intermediate_templates]
       end
 
-      script = WukongScript.new(File.join(@stage_options[:script_dir],
+      script = WukongScript.new(File.join(@flow_options[:script_dir],
                                           "#{name.to_s}.rb"),
-                                input_templates,
-                                @stage_options[:intermediate_templates],
                                 @options,
                                 &blk)
+
+      @task_scripts[name] = script
       
       task definition do
         run_stage script, name

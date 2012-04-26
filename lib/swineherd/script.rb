@@ -12,21 +12,18 @@ module Swineherd
       attr_accessor :attributes, :fs, :options
 
       def initialize(source,
-                     input = [],
-                     output = [],
                      options = {},
                      attributes = {},
                      &blk)
         @source = source
-        @input_templates = input
-        @output_templates = output
-        @options = options
+        @options = options.dup
         @attributes = attributes
         @sub_options = {}
+        @input_templates = @output_templates = nil
 
-        @fs = Swineherd::FileSystem.get options.delete(:fstype)
+        @fs = Swineherd::FileSystem.get @options.delete(:fstype)
 
-        self.instance_eval &blk
+        self.instance_eval &blk if blk
       end
 
       def merge_options new_options
@@ -39,6 +36,14 @@ module Swineherd
 
       def output_templates output
         @output_templates = output
+      end
+
+      def input_templates_soft input
+        @input_templates = input if not @input_templates
+      end
+
+      def output_templates_soft output
+        @output_templates = output if not @output_templates
       end
 
       #
