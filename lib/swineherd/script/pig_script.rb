@@ -1,7 +1,5 @@
-module Swineherd::Script
-  class PigScript
-    include Common
-
+module Swineherd
+  class PigScript < Script
     #
     # Not guaranteeing anything.
     #

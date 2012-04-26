@@ -1,13 +1,23 @@
 require 'pathname'
 
-module Swineherd::Script
-  class WukongScript
-    include Common
+module Swineherd
+  class WukongScript < Script
 
-    def wukong_args options
-      # allowing reduce_tasks and map_tasks to be passed through
+    def format_options
 
-      options.map{|param,val| "--#{param}=#{val}" }.join(' ')
+      command = case @options[:run_mode]
+                when :local
+                  @options.merge! :run => "local"
+                when :hadoop
+                  @options.merge! :run => nil
+                end
+      
+      options.select{|k,v| k != :run_mode}.map do |param,val|
+        case val
+        when nil then "--#{param}"
+        else "--#{param}=#{val}"
+        end
+      end.join(' ')
     end
 
     #
@@ -18,15 +28,7 @@ module Swineherd::Script
     end
 
     def cmd
-      Log.info("Launching Wukong script in hadoop mode")
-      "ruby #{script} #{wukong_args(@options)} --run #{inputs.join(',')} #{outputs.join(',')}"
+      "ruby #{script} #{format_options} #{inputs.join(',')} #{outputs.join(',')}"
     end
-
-    def local_cmd
-      #inputs = inputs.map{|path| path += File.directory?(path) ? "/*" : ""}.join(',')
-      Log.info("Launching Wukong script in local mode")
-      "ruby #{script} #{wukong_args(@options)} --run=local #{inputs} #{outputs.join(',')}"
-    end
-
   end
 end

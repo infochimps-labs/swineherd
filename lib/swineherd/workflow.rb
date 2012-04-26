@@ -131,15 +131,11 @@ module Swineherd
         end
       end
       
-      ## determine whether this is a local or hadoop job
-      mode = script.options[:mode] || :hadoop
-      command = case mode
-                when :local then :local_cmd
-                when :hadoop then :cmd
-                end
+      ## run things on hadoop by default
+      script.options[:run_mode] = script.options[:run_mode] || :hadoop
 
       ## run the job
-      sh (script.send command) do |ok, status|
+      sh script.cmd do |ok, status|
         ok or raise "#{mode.to_s.capitalize} mode script failed with exit status #{status}"
       end
 
