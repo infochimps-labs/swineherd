@@ -1,7 +1,7 @@
 require 'gorillib/hash/delete_multi'
 
 module Swineherd
-  class Script
+  class Stage
     attr_accessor :attributes, :fs, :options
     attr_reader :run_mode
     protected :run_mode
