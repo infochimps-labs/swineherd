@@ -5,7 +5,7 @@ module Swineherd::Script
     include Common
 
     def wukong_args options
-      
+      # allowing reduce_tasks and map_tasks to be passed through
 
       options.map{|param,val| "--#{param}=#{val}" }.join(' ')
     end

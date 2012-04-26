@@ -1,3 +1,5 @@
+require 'gorillib/hash/delete_multi'
+
 module Swineherd
   module Script
 
@@ -7,7 +9,7 @@ module Swineherd
 
     module Common
       
-      attr_accessor :attributes
+      attr_accessor :attributes, :fs, :options
 
       def initialize(source,
                      input = [],
@@ -20,12 +22,14 @@ module Swineherd
         @output_templates = output
         @options = options
         @attributes = attributes
-        @fs = Swineherd::FileSystem.get options[:fstype]
+        @sub_options = {}
+
+        @fs = Swineherd::FileSystem.get options.delete(:fstype)
 
         self.instance_eval &blk
       end
 
-      def options new_options
+      def merge_options new_options
         @options.merge! new_options
       end
 
@@ -57,26 +61,17 @@ module Swineherd
         @inputs  = []
       end
 
-      #
-      # This depends on the type of script
-      #
-      def cmd
-        raise "Override this in subclass!"
-      end
-
-      #
-      # Override this in subclass to decide how script runs in 'local' mode
-      # Best practice is that it needs to be able to run on a laptop w/o
-      # hadoop.
-      #
-      def local_cmd
-        raise "Override this in subclass!"
-      end
-
       def substitute templates
+        @sub_options.merge! @options.delete_multi(
+                                                  :user,
+                                                  :project,
+                                                  :run_number,
+                                                  :epoch,
+                                                  :stage
+                                                  )
         templates.collect do |input|
           r = input.scan(/([^$]*)(\$(?:\{\w+\}|\w+))?/).collect do |novar, var|
-            "#{novar}#{@options[var.gsub(/[\$\{\}]/, '').to_sym] if var}"
+            "#{novar}#{@sub_options[var.gsub(/[\$\{\}]/, '').to_sym] if var}"
           end
 
           r.inject :+
@@ -87,43 +82,10 @@ module Swineherd
         return substitute @input_templates
       end
 
-      
       def outputs
         return substitute @output_templates
       end
       
-      #
-      # Default is to run with hadoop
-      #
-      def run
-
-        ## skip jobs if we've already run them
-        outputs.each do |output|
-          success_dir = File.join output, "_SUCCESS"
-          if @fs.exists? success_dir then
-            Log.info "I see #{success_dir}. skipping stage."
-            return
-          elsif @fs.exists? output then
-            Log.info <<-EOF
-I see #{output}, which does not have a _SUCCESS flag. I'm assuming
-this is the result of a failed hadoop job and exiting.
-EOF
-            exit -1
-          end
-        end
-          
-        ## determine whether this is a local or hadoop job
-        mode = @options[:mode] || :hadoop
-        command = case mode
-                  when :local then local_cmd
-                  when :hadoop then cmd
-                  end
-
-        ## run the job
-        sh command do |ok, status|
-          ok or raise "#{mode.to_s.capitalize} mode script failed with exit status #{status}"
-        end
-      end
     end
   end
 end
