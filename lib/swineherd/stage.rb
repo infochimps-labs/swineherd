@@ -64,10 +64,12 @@ module Swineherd
     end
 
     def inputs
+      sort_options
       return substitute :input_templates
     end
 
     def outputs
+      sort_options
       return substitute :output_templates
     end
 
@@ -95,6 +97,22 @@ module Swineherd
       @script ||= Template.new(@source, @attributes).substitute!
     end
 
+    def cmd
+      sort_options
+    end
+
+    def sort_options
+      @stage_options.merge! @options.delete_multi(
+                                                  :user,
+                                                  :project,
+                                                  :run_number,
+                                                  :epoch,
+                                                  :stage,
+                                                  :input_templates,
+                                                  :output_templates
+                                                  )
+    end
+
     #
     # So we can reuse ourselves
     #
@@ -105,15 +123,6 @@ module Swineherd
     end
 
     def substitute template_type
-      @stage_options.merge! @options.delete_multi(
-                                                  :user,
-                                                  :project,
-                                                  :run_number,
-                                                  :epoch,
-                                                  :stage,
-                                                  :input_templates,
-                                                  :output_templates
-                                                  )
       @stage_options[template_type].collect do |input|
         r = input.scan(/([^$]*)(\$(?:\{\w+\}|\w+))?/).collect do |novar, var|
           "#{novar}#{@stage_options[var.gsub(/[\$\{\}]/, '').to_sym] if var}"

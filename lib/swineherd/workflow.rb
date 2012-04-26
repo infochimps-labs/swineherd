@@ -16,32 +16,32 @@ module Swineherd
       @dsl_handler = WorkflowImpl.new self, options, &blk
     end
   end
-    
-  class WorkflowImpl
 
-    public
+  class WorkflowImpl
 
     def initialize parent, options = {}, &blk
       @blk = blk
       @options = options
       @options.merge! :epoch => Time.now.to_flat
 
-      @flow_options = options.delete_multi(
-                                            :project,
-                                            :script_dir,
-                                            :input_templates,
-                                            :output_templates,
-                                            :intermediate_templates
-                                            )
-
+      @flow_options = {
+        :input_templates => ["/user/$user/data/$project/$stage-$epoch-$run_number"],
+        :output_templates => ["/user/$user/data/$project/$stage-$epoch-$run_number"],
+        :intermediate_templates => ["/user/$user/tmp/$project/$stage-$epoch-$run_number"],
+        :project => options[:project]
+      }
+      @flow_options.merge! options.delete_multi(
+                                                :script_dir,
+                                                :input_templates,
+                                                :output_templates,
+                                                :intermediate_templates
+                                                )
       @stage_scripts = {}
       @finalized = false
       @parent = parent
     end
 
-    #
-    # Runs workflow starting with stagename
-    #
+    ## Runs workflow starting with stagename
     def run stagename
       finalize
 
@@ -51,9 +51,7 @@ module Swineherd
       Log.info "Workflow stage #{@flow_options[:project]}:#{stagename} finished"
     end
 
-    #
-    # Describes the dependency tree of all stages belonging to self
-    #
+    ## Describes the dependency tree of all stages belonging to self
     def describe
       finalize
 
@@ -64,6 +62,7 @@ module Swineherd
     end
 
 
+    ## Define a new stage to be run
     def stage cls, definition, &blk
 
       ## extract name from definition
@@ -81,7 +80,7 @@ module Swineherd
                                        @options,
                                        &blk)
 
-      ## run it
+      ## schedule this task for running
       task definition do
         run_stage @stage_scripts[name], name
       end
@@ -89,9 +88,7 @@ module Swineherd
 
     private
 
-    #
-    # runs user block given to constructor in parent's scope.
-    # 
+    ## runs user block given to constructor in parent's scope.
     def finalize
       return if @finalized
 
@@ -145,6 +142,7 @@ module Swineherd
       @finalized = true
     end
 
+    ## does the actual work of running a stage. stuff happens here.
     def run_stage script, name
 
       ## Check to see whether we've already run this stage.
@@ -160,15 +158,16 @@ module Swineherd
       end
 
       ## run things on hadoop by default
-      script.merge_options_soft :run_mode => :hadoop
+      script.merge_options_soft(
+                                :run_mode => :hadoop,
+                                :stage => name
+                                )
 
       ## run the job
       sh script.cmd do |ok, status|
         ok or raise("Stage #{name} failed with exit "                           \
                     "status #{status}")
       end
-
     end
-
   end
 end

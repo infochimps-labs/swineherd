@@ -4,7 +4,6 @@ module Swineherd
   class WukongScript < StageImpl
 
     def format_options
-
       command = case @options[:run_mode]
                 when :local
                   @options.merge! :run => "local"
@@ -28,6 +27,7 @@ module Swineherd
     end
 
     def cmd
+      super
       "ruby #{script}.rb #{format_options} #{inputs.join(',')} #{outputs.join(',')}"
     end
   end
