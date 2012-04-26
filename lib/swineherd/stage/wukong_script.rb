@@ -1,7 +1,7 @@
 require 'pathname'
 
 module Swineherd
-  class WukongScript < Stage
+  class WukongScript < StageImpl
 
     def format_options
 

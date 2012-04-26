@@ -1,12 +1,33 @@
 require 'gorillib/hash/delete_multi'
+require 'forwardable'
 
 module Swineherd
   class Stage
-    attr_accessor :attributes, :fs, :options
-    attr_reader :run_mode
-    protected :run_mode
+    extend Forwardable
 
-    def initialize(source,
+    def_delegators(:@dsl_handler,
+                   :merge_options,
+                   :merge_options_soft,
+                   :outputs,
+                   :inputs,
+                   :status,
+                   :cmd)
+    
+    def initialize(cls,
+                   source,
+                   options = {},
+                   attributes = {},
+                   &blk)
+
+      @dsl_handler = cls.new self, source, options, attributes, &blk
+
+    end
+  end
+
+  class StageImpl
+
+    def initialize(parent,
+                   source,
                    options = {},
                    attributes = {},
                    &blk)
@@ -16,8 +37,8 @@ module Swineherd
       @stage_options = {}
 
       @fs = Swineherd::FileSystem.get @options.delete(:fstype)
+      @finalized = false
 
-      self.instance_eval &blk if blk
     end
 
     def merge_options new_options
@@ -26,6 +47,41 @@ module Swineherd
 
     def merge_options_soft new_options
       @options.merge!(new_options) {|k,old_v,new_v| old_v}
+    end
+
+    def status
+      outputs.each do |output|
+        success_dir = File.join output, "_SUCCESS"
+
+        if @fs.exists? success_dir then
+          return :complete
+        elsif @fs.exists? output then
+          return :failed
+        else
+          return :incomplete
+        end
+      end
+    end
+
+    def inputs
+      return substitute :input_templates
+    end
+
+    def outputs
+      return substitute :output_templates
+    end
+
+    protected
+
+    attr_accessor :attributes, :options
+    attr_reader :run_mode
+
+    def finalize
+      return if @finalized
+
+      parent.instance_eval &blk if blk
+
+      @finalized = true
     end
 
     #
@@ -65,14 +121,6 @@ module Swineherd
 
         r.inject :+
       end
-    end
-    
-    def inputs
-      return substitute :input_templates
-    end
-
-    def outputs
-      return substitute :output_templates
     end
     
   end

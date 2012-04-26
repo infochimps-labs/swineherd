@@ -34,8 +34,6 @@ module Swineherd
                                             :intermediate_templates
                                             )
 
-      @output_counts = Hash.new{|h,k| h[k] = 0}
-      @outputs       = Hash.new{|h,k| h[k] = []}
       @stage_scripts = {}
       @finalized = false
       @parent = parent
@@ -76,10 +74,11 @@ module Swineherd
       end
 
       ## create the script
-      script = WukongScript.new(File.join(@flow_options[:script_dir],
-                                          "#{name.to_s}.rb"),
-                                @options,
-                                &blk)
+      script = Stage.new(WukongScript,
+                         File.join(@flow_options[:script_dir],
+                                   "#{name.to_s}.rb"),
+                         @options,
+                         &blk)
 
       # Rake won't remember the script, so we have to do this.
       @stage_scripts[name] = script
@@ -147,22 +146,20 @@ module Swineherd
 
     def run_stage script, name
 
-      ## See if we've already run this stage.
-      script.outputs.each do |output|
-        success_dir = File.join output, "_SUCCESS"
-        if script.fs.exists? success_dir then
-          Log.info "I see #{success_dir}. skipping stage."
-          return
-        elsif script.fs.exists? output then
-          Log.info("#{output} exists and does not have a _SUCCESS flag. "       \
-                   "I'm assuming this is the result of a failed run "           \
-                   "and exiting.")
-          exit -1
-        end
+      ## Check to see whether we've already run this stage.
+      case script.status
+      when :complete
+        Log.info "I see #{success_dir}. skipping stage."
+        return
+      when :failed
+        Log.info("#{output} exists and does not have a _SUCCESS flag. "         \
+                 "I'm assuming this is the result of a failed run "             \
+                 "and exiting.")
+        exit -1
       end
-      
+
       ## run things on hadoop by default
-      script.options[:run_mode] = script.options[:run_mode] || :hadoop
+      script.merge_options_soft :run_mode => :hadoop
 
       ## run the job
       sh script.cmd do |ok, status|

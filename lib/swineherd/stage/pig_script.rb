@@ -1,5 +1,5 @@
 module Swineherd
-  class PigScript < Stage
+  class PigScript < StageImpl
     #
     # Not guaranteeing anything.
     #
