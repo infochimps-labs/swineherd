@@ -1,7 +1,6 @@
 require 'forwardable'
 require 'time'
 require 'gorillib/datetime/flat'
-require 'gorillib/hash/delete_multi'
 
 module Swineherd
   class WorkflowDelegator
@@ -26,19 +25,26 @@ module Swineherd
 
       @flow_options = {
         :input_templates =>
-        ["/user/$user/data/$project/$stage-$epoch-$run_number"],
+        ["/user/$user/data/$project/$stage-$run_number-$epoch"],
         :output_templates =>
-        ["/user/$user/data/$project/$stage-$epoch-$run_number"],
+        ["/user/$user/data/$project/$stage-$run_number-$epoch"],
         :intermediate_templates =>
-        ["/user/$user/tmp/$project/$stage-$epoch-$run_number"],
+        ["/user/$user/tmp/$project/$stage-$run_number-$epoch"],
         :project => options[:project]
       }
-      @flow_options.merge! options.delete_multi(
-                                                :script_dir,
-                                                :input_templates,
-                                                :output_templates,
-                                                :intermediate_templates
-                                                )
+
+      is_a_flow_option = lambda do |k,v|
+        [
+         :script_dir,
+         :input_templates,
+         :output_templates,
+         :intermediate_templates
+        ].index(k)
+      end
+
+      @flow_options.merge!(@options.select(&is_a_flow_option))
+      @options.reject!(&is_a_flow_option)
+
       @stage_scripts = {}
       @finalized = false
       @parent = WorkflowDelegator.new self

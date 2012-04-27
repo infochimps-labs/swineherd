@@ -1,5 +1,4 @@
 require 'swineherd-fs'
-require 'gorillib/hash/delete_multi'
 require 'forwardable'
 
 module Swineherd
@@ -120,16 +119,19 @@ module Swineherd
     end
 
     def sort_options
-      @stage_options.merge! @options.delete_multi(
-                                                  :user,
-                                                  :project,
-                                                  :run_number,
-                                                  :epoch,
-                                                  :stage,
-                                                  :last_stages,
-                                                  :input_templates,
-                                                  :output_templates
-                                                  )
+      is_a_stage_option = lambda do |k,v|
+        [:user,
+         :project,
+         :run_number,
+         :epoch,
+         :stage,
+         :last_stages,
+         :input_templates,
+         :output_templates].index(k)
+      end
+
+      @stage_options.merge!(@options.select(&is_a_stage_option))
+      @options.reject!(&is_a_stage_option)
     end
 
     def old_dirs template_type, overrides = {}
