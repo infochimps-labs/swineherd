@@ -4,7 +4,7 @@ require 'gorillib/datetime/flat'
 require 'gorillib/hash/delete_multi'
 
 module Swineherd
-  class Workflow
+  class WorkflowDelegator
     extend Forwardable
 
     def_delegators(:@dsl_handler,
@@ -12,14 +12,14 @@ module Swineherd
                    :run,
                    :stage)
     
-    def initialize options = {}, &blk
-      @dsl_handler = WorkflowImpl.new self, options, &blk
+    def initialize child
+      @dsl_handler = child
     end
   end
 
-  class WorkflowImpl
+  class Workflow
 
-    def initialize parent, options = {}, &blk
+    def initialize options = {}, &blk
       @blk = blk
       @options = options
       @options.merge! :epoch => Time.now.to_flat
@@ -41,7 +41,7 @@ module Swineherd
                                                 )
       @stage_scripts = {}
       @finalized = false
-      @parent = parent
+      @parent = WorkflowDelegator.new self
     end
 
     ## Runs workflow starting with stagename
@@ -77,11 +77,10 @@ module Swineherd
       end
 
       ## create the script
-      @stage_scripts[name] = Stage.new(cls,
-                                       File.join(@flow_options[:script_dir],
-                                                 "#{name.to_s}"),
-                                       @options,
-                                       &blk)
+      @stage_scripts[name] = cls.new(File.join(@flow_options[:script_dir],
+                                               "#{name.to_s}"),
+                                     @options,
+                                     &blk)
 
       ## schedule this task for running
       task definition do

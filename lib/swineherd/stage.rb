@@ -3,37 +3,26 @@ require 'gorillib/hash/delete_multi'
 require 'forwardable'
 
 module Swineherd
-  class Stage
+  class StageDelegator
     extend Forwardable
 
     def_delegators(:@dsl_handler,
                    :merge_options,
                    :merge_options_soft,
-                   :write_success_flag,
-                   :outputs,
-                   :inputs,
-                   :status,
-                   :cmd,
                    :env)
-    
-    def initialize(cls,
-                   source,
-                   options = {},
-                   attributes = {},
-                   &blk)
 
-      @dsl_handler = cls.new self, source, options, attributes, &blk
-
+    def initialize child
+      @dsl_handler = child
     end
   end
 
-  class StageImpl
+  class Stage
 
-    def initialize(parent,
-                   source,
+    def initialize(source,
                    options = {},
                    attributes = {},
                    &blk)
+      @parent = StageDelegator.new self
       @source = source
       @options = options.dup
       @attributes = attributes
@@ -41,7 +30,6 @@ module Swineherd
 
       @fs = Swineherd::FileSystem.get @options.delete(:fstype)
       @finalized = false
-      @parent = parent
       @blk = blk
 
     end

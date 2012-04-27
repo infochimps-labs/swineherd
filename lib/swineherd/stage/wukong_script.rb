@@ -1,7 +1,7 @@
 require 'pathname'
 
 module Swineherd
-  class WukongScript < StageImpl
+  class WukongScript < Stage
 
     def format_options
       command = case @options[:run_mode]
