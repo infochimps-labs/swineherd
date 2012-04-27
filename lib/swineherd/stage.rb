@@ -68,7 +68,11 @@ module Swineherd
 
     def inputs
       sort_options
-      return substitute :input_templates
+      last_stages = @stage_options[:last_stages]
+      return substitute :input_templates, {
+        :stage =>
+        last_stages.size > 1 ? "{#{last_stages.join ','}}" : last_stages.first
+      }      
     end
 
     def outputs
@@ -113,15 +117,17 @@ module Swineherd
                                                   :run_number,
                                                   :epoch,
                                                   :stage,
+                                                  :last_stages,
                                                   :input_templates,
                                                   :output_templates
                                                   )
     end
 
-    def substitute template_type
-      @stage_options[template_type].collect do |input|
+    def substitute template_type, overrides = {}
+      options = @stage_options.merge(overrides)
+      options[template_type].collect do |input|
         r = input.scan(/([^$]*)(\$(?:\{\w+\}|\w+))?/).collect do |novar, var|
-          "#{novar}#{@stage_options[var.gsub(/[\$\{\}]/, '').to_sym] if var}"
+          "#{novar}#{options[var.gsub(/[\$\{\}]/, '').to_sym] if var}"
         end
 
         r.inject :+

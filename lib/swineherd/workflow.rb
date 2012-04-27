@@ -25,9 +25,12 @@ module Swineherd
       @options.merge! :epoch => Time.now.to_flat
 
       @flow_options = {
-        :input_templates => ["/user/$user/data/$project/$stage-$epoch-$run_number"],
-        :output_templates => ["/user/$user/data/$project/$stage-$epoch-$run_number"],
-        :intermediate_templates => ["/user/$user/tmp/$project/$stage-$epoch-$run_number"],
+        :input_templates =>
+        ["/user/$user/data/$project/$stage-$epoch-$run_number"],
+        :output_templates =>
+        ["/user/$user/data/$project/$stage-$epoch-$run_number"],
+        :intermediate_templates =>
+        ["/user/$user/tmp/$project/$stage-$epoch-$run_number"],
         :project => options[:project]
       }
       @flow_options.merge! options.delete_multi(
@@ -139,6 +142,16 @@ module Swineherd
                                                        :output_templates))
       (all_stages - have_prerequisites).each(&soft_merge(:input_templates,
                                                         :input_templates))
+
+      ## Make sure each stage knows about the stages that come before
+      ## it. It uses this information to find the output of the last
+      ## stage.
+
+      Rake::Task.tasks.each do |task|
+        stage_name = remove_scope.call task.name
+        @stage_scripts[stage_name].merge_options :last_stages =>
+          task.prerequisites.map(&remove_scope)
+      end
 
       @finalized = true
     end
