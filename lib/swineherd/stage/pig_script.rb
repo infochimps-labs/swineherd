@@ -1,5 +1,11 @@
 module Swineherd
   class PigScript < Stage
+
+    def finalize
+      self.source = "#{self.source}.pig.erb"
+      super
+    end
+
     #
     # Not guaranteeing anything.
     #
@@ -12,6 +18,17 @@ module Swineherd
       'bytes'  => 'bytearray',
       'fixed'  => 'bytearray'
     }
+
+    def format_options
+      @options.merge!(:x => "local") if @options[:run_mode] == :local
+      
+      options.select{|k,v| k != :run_mode}.map do |param,val|
+        case val
+        when nil then "--#{param}"
+        else "--#{param}=#{val}"
+        end
+      end.join(' ')
+    end
 
     #
     # Simple utility function for mapping avro types to pig types
@@ -28,15 +45,8 @@ module Swineherd
       options.map{|opt,val| "-p #{opt.to_s.upcase}=#{val}" }.join(' ')
     end
 
-
-
-    def local_cmd
-      Log.info("Launching Pig script in local mode")
-      "pig -x local #{pig_args(@options)} #{script}"
-    end
-
     def cmd
-      Log.info("Launching Pig script in hadoop mode")
+      super
       "pig #{pig_args(@options)} #{script}"
     end
 

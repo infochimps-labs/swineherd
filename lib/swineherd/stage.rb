@@ -96,7 +96,7 @@ module Swineherd
 
     protected
 
-    attr_accessor :attributes, :options
+    attr_accessor :attributes, :options, :source
     attr_reader :run_mode
 
     def finalize
@@ -110,6 +110,8 @@ module Swineherd
     end
 
     def script
+      @attributes.merge!(:inputs => inputs, :outputs => outputs)
+        .merge! @stage_options
       @script ||= Template.new(@source, @attributes).substitute!
     end
 
