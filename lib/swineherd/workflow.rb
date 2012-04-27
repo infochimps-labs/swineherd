@@ -88,7 +88,8 @@ module Swineherd
 
     private
 
-    ## runs user block given to constructor in parent's scope.
+    ## runs user block given to constructor in parent's scope and
+    ## builds input and output directories.
     def finalize
       return if @finalized
 

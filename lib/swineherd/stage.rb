@@ -38,6 +38,8 @@ module Swineherd
 
       @fs = Swineherd::FileSystem.get @options.delete(:fstype)
       @finalized = false
+      @parent = parent
+      @blk = blk
 
     end
 
@@ -81,9 +83,11 @@ module Swineherd
     def finalize
       return if @finalized
 
-      parent.instance_eval &blk if blk
+      @parent.instance_eval &@blk if @blk
 
       @finalized = true
+
+      sort_options
     end
 
     #
@@ -98,7 +102,7 @@ module Swineherd
     end
 
     def cmd
-      sort_options
+      finalize
     end
 
     def sort_options
