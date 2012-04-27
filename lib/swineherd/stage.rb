@@ -11,7 +11,8 @@ module Swineherd
                    :outputs,
                    :inputs,
                    :status,
-                   :cmd)
+                   :cmd,
+                   :env)
     
     def initialize(cls,
                    source,
@@ -75,6 +76,13 @@ module Swineherd
       return substitute :output_templates
     end
 
+    #
+    # Allows for setting the environment the script will be run in
+    #
+    def env
+      ENV
+    end
+
     protected
 
     attr_accessor :attributes, :options
@@ -88,13 +96,6 @@ module Swineherd
       @finalized = true
 
       sort_options
-    end
-
-    #
-    # Allows for setting the environment the script will be run in
-    #
-    def env
-      ENV
     end
 
     def script
@@ -115,15 +116,6 @@ module Swineherd
                                                   :input_templates,
                                                   :output_templates
                                                   )
-    end
-
-    #
-    # So we can reuse ourselves
-    #
-    def refresh!
-      @script = nil
-      @outputs = []
-      @inputs  = []
     end
 
     def substitute template_type
