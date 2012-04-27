@@ -109,11 +109,11 @@ module Swineherd
 
       are_prerequisites = Rake::Task.tasks.map do |t|
         t.prerequisites
-      end.flatten.map(&remove_scope)
+      end.flatten.map(&remove_scope).uniq
 
       have_prerequisites = Rake::Task.tasks.map do |t|
-        t if t.prerequisites.size == 0
-      end.compact.map(&:name).map(&remove_scope)
+        t if t.prerequisites.size != 0
+      end.compact.map(&:name).map(&remove_scope).uniq
 
       ## Once we've determined what category a stage is in, we can
       ## determine where it should look for its inputs and write its
