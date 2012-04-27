@@ -5,7 +5,6 @@ require 'gorillib/logger/log'
 
 module Swineherd
   autoload :Template,     'swineherd/template'
-  autoload :FileSystem,   'swineherd/filesystem'
   autoload :Stage,        'swineherd/stage'
   autoload :StageImpl,    'swineherd/stage'
   autoload :Workflow,     'swineherd/workflow'

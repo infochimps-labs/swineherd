@@ -159,28 +159,29 @@ module Swineherd
     ## does the actual work of running a stage. stuff happens here.
     def run_stage script, name
 
-      ## Check to see whether we've already run this stage.
-      case script.status
-      when :complete
-        Log.info "I see #{success_dir}. skipping stage."
-        return
-      when :failed
-        Log.info("#{output} exists and does not have a _SUCCESS flag. "         \
-                 "I'm assuming this is the result of a failed run "             \
-                 "and exiting.")
-        exit -1
-      end
-
       ## run things on hadoop by default
       script.merge_options_soft(
                                 :run_mode => :hadoop,
                                 :stage => name
                                 )
 
+      ## Check to see whether we've already run this stage.
+      case script.status
+      when :complete
+        Log.info "I see outputs for #{name}. skipping stage."
+        return
+      when :failed
+        Log.info("output directory for #{name} exists and does not have a "     \
+                 " _SUCCESS flag. I'm assuming this is the result of a failed " \
+                 "run and exiting.")
+        exit -1
+      end
+
       ## run the job
       sh script.cmd do |ok, status|
-        ok or raise("Stage #{name} failed with exit "                           \
-                    "status #{status}")
+        ok ?
+        script.write_success_flag :
+          raise("Stage #{name} failed with exit status #{status}")
       end
     end
   end

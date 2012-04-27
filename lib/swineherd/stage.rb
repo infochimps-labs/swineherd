@@ -1,3 +1,4 @@
+require 'swineherd-fs'
 require 'gorillib/hash/delete_multi'
 require 'forwardable'
 
@@ -8,6 +9,7 @@ module Swineherd
     def_delegators(:@dsl_handler,
                    :merge_options,
                    :merge_options_soft,
+                   :write_success_flag,
                    :outputs,
                    :inputs,
                    :status,
@@ -53,30 +55,39 @@ module Swineherd
     end
 
     def status
-      outputs.each do |output|
+      dirs = old_dirs(:output_templates)
+
+      ## fixme: This does not take into account the possibility of
+      ## multiple output directories with some successes and some
+      ## incompletes. In that case, we'll mark this as
+      ## incomplete. (That's fine when we only have one output
+      ## directory.)
+
+      return :incomplete if dirs.index nil
+
+      dirs.each do |output|
         success_dir = File.join output, "_SUCCESS"
 
-        if @fs.exists? success_dir then
-          return :complete
-        elsif @fs.exists? output then
-          return :failed
+        if @fs.exists? output 
+          return :failed unless @fs.exists? success_dir
         else
           return :incomplete
         end
       end
+
+      return :complete
     end
 
     def inputs
       sort_options
       last_stages = @stage_options[:last_stages]
-      return substitute :input_templates, {
+      input_directories = old_dirs :input_templates, {
         :stage =>
-        last_stages.size > 1 ? "{#{last_stages.join ','}}" : last_stages.first
-      }      
+        last_stages.size > 1 ? "{#{last_stages.join ','}}" : last_stages.first,
+      }
     end
-
+    
     def outputs
-      sort_options
       return substitute :output_templates
     end
 
@@ -85,6 +96,14 @@ module Swineherd
     #
     def env
       ENV
+    end
+
+    def write_success_flag
+      outputs.each do |d|
+        @fs.open(File.join(d, "_SUCCESS"), "w") do |s|
+          s.write("")
+        end
+      end
     end
 
     protected
@@ -123,13 +142,31 @@ module Swineherd
                                                   )
     end
 
+    def old_dirs template_type, overrides = {}
+      sort_options
+      patterns = substitute template_type, overrides.merge(:epoch => '[0-9]+')
+
+      return patterns.map do |p|
+        matching_inputs = @fs.ls(File.dirname p).select do |dir|
+          Regexp.new(p).match dir
+        end
+        if matching_inputs then
+          matching_inputs.sort.last
+        elsif template_type == :input_templates
+          raise("stage #{@stage_options[:stage]} couldn't find input "         \
+                "directory directory matching #{p}")
+        end
+      end
+    end
+
     def substitute template_type, overrides = {}
-      options = @stage_options.merge(overrides)
+      sort_options
+      options = @stage_options.merge overrides
       options[template_type].collect do |input|
         r = input.scan(/([^$]*)(\$(?:\{\w+\}|\w+))?/).collect do |novar, var|
           "#{novar}#{options[var.gsub(/[\$\{\}]/, '').to_sym] if var}"
         end
-
+        
         r.inject :+
       end
     end
