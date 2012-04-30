@@ -16,8 +16,18 @@ module Swineherd
     end
   end
 
-  class Workflow 
-    
+  class Workflow
+
+    ## These options are used by the workflow and are not passed
+    ## directly to stages. Instead, they are pulled out and used to
+    ## generate options sent to stages.
+    @@workflow_option_keys = [
+                              :script_dir,
+                              :input_templates,
+                              :output_templates,
+                              :intermediate_templates
+                             ]
+
     def initialize options = {}, &blk
       @blk = blk
       @options = options
@@ -33,14 +43,7 @@ module Swineherd
         :project => options[:project]
       }
 
-      is_a_flow_option = lambda do |k,v|
-        [
-         :script_dir,
-         :input_templates,
-         :output_templates,
-         :intermediate_templates
-        ].index(k)
-      end
+      is_a_flow_option = lambda { |k,v| @@workflow_option_keys.index(k) }
 
       @flow_options.merge!(@options.select(&is_a_flow_option))
       @options.reject!(&is_a_flow_option)
@@ -123,7 +126,6 @@ module Swineherd
           t.name =~ /#{@flow_options[:project]}/
       end
     end
-
 
     ## Define a new stage to be run
     def stage cls, definition, &blk

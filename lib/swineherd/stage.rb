@@ -17,6 +17,20 @@ module Swineherd
 
   class Stage
 
+    ## These options are used by the stage and are not passed directly
+    ## to scripts. Instead, they are pulled out and used to generate
+    ## options sent to scripts
+    @@stage_option_keys = [
+                           :user,
+                           :project,
+                           :run_number,
+                           :epoch,
+                           :stage,
+                           :last_stages,
+                           :input_templates,
+                           :output_templates
+                          ]
+
     def initialize(source,
                    options = {},
                    attributes = {},
@@ -101,16 +115,7 @@ module Swineherd
     attr_reader :run_mode, :source
 
     def sort_options
-      is_a_stage_option = lambda do |k,v|
-        [:user,
-         :project,
-         :run_number,
-         :epoch,
-         :stage,
-         :last_stages,
-         :input_templates,
-         :output_templates].index(k)
-      end
+      is_a_stage_option = lambda { |k,v| @@stage_option_keys.index(k) }
 
       @stage_options.merge!(@options.select(&is_a_stage_option))
       @options.reject!(&is_a_stage_option)
