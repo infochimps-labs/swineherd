@@ -24,11 +24,13 @@ module Swineherd
                            :user,
                            :project,
                            :run_number,
+                           :run_mode,
                            :epoch,
                            :stage,
                            :last_stages,
                            :input_templates,
-                           :output_templates
+                           :output_templates,
+                           :hadoop_home,
                           ]
 
     def initialize(source,
@@ -56,6 +58,10 @@ module Swineherd
     def merge_options_soft new_options
       @options.merge!(new_options) {|k,old_v,new_v| old_v}
       sort_options
+    end
+
+    def merge_attributes attributes
+      @attributes.merge! attributes
     end
 
     def status
@@ -109,10 +115,25 @@ module Swineherd
       end
     end
 
+    def cmd
+      format_options
+      script_cmd
+    end
+
     protected
 
-    attr_accessor :attributes, :options
-    attr_reader :run_mode, :source
+    attr_accessor :options
+    attr_reader :source
+    
+    def format_options
+      format_script_options
+      options.map do |param,val|
+        case val
+        when nil then "--#{param}"
+        else "--#{param}=#{val}"
+        end
+      end.join(' ')
+    end
 
     def sort_options
       is_a_stage_option = lambda { |k,v| @@stage_option_keys.index(k) }

@@ -18,15 +18,8 @@ module Swineherd
       return "#{@source}.pig.erb"
     end
 
-    def format_options
+    def format_script_options
       @options.merge!(:x => "local") if @options[:run_mode] == :local
-      
-      options.select{|k,v| k != :run_mode}.map do |param,val|
-        case val
-        when nil then "--#{param}"
-        else "--#{param}=#{val}"
-        end
-      end.join(' ')
     end
 
     #
@@ -44,7 +37,7 @@ module Swineherd
       options.map{|opt,val| "-p #{opt.to_s.upcase}=#{val}" }.join(' ')
     end
 
-    def cmd
+    def script_cmd
       "pig #{pig_args(@options)} #{script}"
     end
 
