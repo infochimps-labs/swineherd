@@ -9,6 +9,7 @@ module Swineherd
     def_delegators(:@dsl_handler,
                    :describe,
                    :run,
+                   :chain,
                    :stage)
     
     def initialize child
@@ -50,6 +51,8 @@ module Swineherd
 
       @stage_scripts = {}
       @parent = WorkflowDelegator.new self
+
+      @chain_depth = 0
 
       ## run user block given to constructor in parent's scope and
       ## builds input and output directories.
@@ -127,16 +130,22 @@ module Swineherd
       end
     end
 
+    ## Define a chain of stages that implicitly depend on one another
+    def chain &blk
+      @last_stages = []
+      @chain_depth += 1
+      @parent.instance_eval(&blk)
+      @chain_depth -= 1
+    end
+
     ## Define a new stage to be run
     def stage cls, definition, &blk
 
-      ## extract name from definition
-      case definition
-        when (Symbol || String)
-        name = definition
-      when Hash
-        name = definition.keys.first
-      end
+      definition = {definition => []} unless definition.is_a? Hash
+      definition.values.first.push(@last_stages).flatten! unless
+        @chain_depth == 0 
+
+      name = definition.keys.first
 
       ## create the script
       @stage_scripts[name] = cls.new(File.join(@flow_options[:script_dir],
@@ -148,6 +157,8 @@ module Swineherd
       task definition do
         run_stage @stage_scripts[name], name
       end
+
+      @last_stages = [name]
     end
 
     ## does the actual work of running a stage. stuff happens here.
@@ -166,7 +177,7 @@ module Swineherd
         return
       when :failed
         Log.info("output directory for #{name} exists and does not have a "     \
-                 " _SUCCESS flag. I'm assuming this is the result of a failed " \
+                 "_SUCCESS flag. I'm assuming this is the result of a failed "  \
                  "run and exiting.")
         exit -1
       end
