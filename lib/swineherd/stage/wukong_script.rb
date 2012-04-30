@@ -27,7 +27,6 @@ module Swineherd
     end
 
     def cmd
-      super
       "ruby #{script}.rb #{format_options} #{inputs.join(',')} #{outputs.join(',')}"
     end
   end

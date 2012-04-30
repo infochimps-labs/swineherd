@@ -28,17 +28,20 @@ module Swineherd
       @stage_options = {}
 
       @fs = Swineherd::FileSystem.get @options.delete(:fstype)
-      @finalized = false
       @blk = blk
 
+      @parent.instance_eval &@blk if @blk
+      sort_options
     end
 
     def merge_options new_options
       @options.merge! new_options
+      sort_options
     end
 
     def merge_options_soft new_options
       @options.merge!(new_options) {|k,old_v,new_v| old_v}
+      sort_options
     end
 
     def status
@@ -66,7 +69,6 @@ module Swineherd
     end
 
     def inputs
-      sort_options
       last_stages = @stage_options[:last_stages]
       input_directories = old_dirs :input_templates, {
         :stage =>
@@ -95,28 +97,8 @@ module Swineherd
 
     protected
 
-    attr_accessor :attributes, :options, :source
-    attr_reader :run_mode
-
-    def finalize
-      return if @finalized
-
-      @parent.instance_eval &@blk if @blk
-
-      @finalized = true
-
-      sort_options
-    end
-
-    def script
-      @attributes.merge!(:inputs => inputs, :outputs => outputs)
-        .merge! @stage_options
-      @script ||= Template.new(@source, @attributes).substitute!
-    end
-
-    def cmd
-      finalize
-    end
+    attr_accessor :attributes, :options
+    attr_reader :run_mode, :source
 
     def sort_options
       is_a_stage_option = lambda do |k,v|
@@ -134,8 +116,13 @@ module Swineherd
       @options.reject!(&is_a_stage_option)
     end
 
+    def script
+      @attributes.merge!(:inputs => inputs, :outputs => outputs)
+        .merge! @stage_options
+      @script ||= Template.new(source, @attributes).substitute!
+    end
+
     def old_dirs template_type, overrides = {}
-      sort_options
       patterns = substitute template_type, overrides.merge(:epoch => '[0-9]+')
 
       return patterns.map do |p|
@@ -152,7 +139,6 @@ module Swineherd
     end
 
     def substitute template_type, overrides = {}
-      sort_options
       options = @stage_options.merge overrides
       options[template_type].collect do |input|
         r = input.scan(/([^$]*)(\$(?:\{\w+\}|\w+))?/).collect do |novar, var|

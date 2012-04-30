@@ -16,8 +16,8 @@ module Swineherd
     end
   end
 
-  class Workflow
-
+  class Workflow 
+    
     def initialize options = {}, &blk
       @blk = blk
       @options = options
@@ -46,61 +46,10 @@ module Swineherd
       @options.reject!(&is_a_flow_option)
 
       @stage_scripts = {}
-      @finalized = false
       @parent = WorkflowDelegator.new self
-    end
 
-    ## Runs workflow starting with stagename
-    def run stagename
-      finalize
-
-      Log.info("Launching workflow stage "                                      \
-               "#{@flow_options[:project]}:#{stagename} ...")
-      Rake::Task["#{@flow_options[:project]}:#{stagename}"].invoke
-      Log.info "Workflow stage #{@flow_options[:project]}:#{stagename} finished"
-    end
-
-    ## Describes the dependency tree of all stages belonging to self
-    def describe
-      finalize
-
-      Rake::Task.tasks.each do |t|
-        Log.info("Stage: #{t.name} [#{t.inspect}]") if
-          t.name =~ /#{@flow_options[:project]}/
-      end
-    end
-
-
-    ## Define a new stage to be run
-    def stage cls, definition, &blk
-
-      ## extract name from definition
-      case definition
-        when (Symbol || String)
-        name = definition
-      when Hash
-        name = definition.keys.first
-      end
-
-      ## create the script
-      @stage_scripts[name] = cls.new(File.join(@flow_options[:script_dir],
-                                               "#{name.to_s}"),
-                                     @options,
-                                     &blk)
-
-      ## schedule this task for running
-      task definition do
-        run_stage @stage_scripts[name], name
-      end
-    end
-
-    private
-
-    ## runs user block given to constructor in parent's scope and
-    ## builds input and output directories.
-    def finalize
-      return if @finalized
-
+      ## run user block given to constructor in parent's scope and
+      ## builds input and output directories.
       namespace @flow_options[:project] do
         @parent.instance_eval(&@blk)
       end
@@ -157,8 +106,46 @@ module Swineherd
         @stage_scripts[stage_name].merge_options :last_stages =>
           task.prerequisites.map(&remove_scope)
       end
+    end
 
-      @finalized = true
+    ## Runs workflow starting with stagename
+    def run stagename
+      Log.info("Launching workflow stage "                                      \
+               "#{@flow_options[:project]}:#{stagename} ...")
+      Rake::Task["#{@flow_options[:project]}:#{stagename}"].invoke
+      Log.info "Workflow stage #{@flow_options[:project]}:#{stagename} finished"
+    end
+
+    ## Describes the dependency tree of all stages belonging to self
+    def describe
+      Rake::Task.tasks.each do |t|
+        Log.info("Stage: #{t.name} [#{t.inspect}]") if
+          t.name =~ /#{@flow_options[:project]}/
+      end
+    end
+
+
+    ## Define a new stage to be run
+    def stage cls, definition, &blk
+
+      ## extract name from definition
+      case definition
+        when (Symbol || String)
+        name = definition
+      when Hash
+        name = definition.keys.first
+      end
+
+      ## create the script
+      @stage_scripts[name] = cls.new(File.join(@flow_options[:script_dir],
+                                               "#{name.to_s}"),
+                                     @options,
+                                     &blk)
+
+      ## schedule this task for running
+      task definition do
+        run_stage @stage_scripts[name], name
+      end
     end
 
     ## does the actual work of running a stage. stuff happens here.

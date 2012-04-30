@@ -1,11 +1,6 @@
 module Swineherd
   class PigScript < Stage
 
-    def finalize
-      self.source = "#{self.source}.pig.erb"
-      super
-    end
-
     #
     # Not guaranteeing anything.
     #
@@ -18,6 +13,10 @@ module Swineherd
       'bytes'  => 'bytearray',
       'fixed'  => 'bytearray'
     }
+
+    def source
+      return "#{@source}.pig.erb"
+    end
 
     def format_options
       @options.merge!(:x => "local") if @options[:run_mode] == :local
@@ -46,7 +45,6 @@ module Swineherd
     end
 
     def cmd
-      super
       "pig #{pig_args(@options)} #{script}"
     end
 
