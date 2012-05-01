@@ -21,18 +21,27 @@ module Swineherd
     ## These options are used by the stage and are not passed directly
     ## to scripts. Instead, they are pulled out and used to generate
     ## options sent to scripts
-    @@stage_option_keys = [
-                           :user,
-                           :project,
-                           :run_number,
-                           :run_mode,
-                           :epoch,
-                           :stage,
-                           :last_stages,
-                           :input_templates,
-                           :output_templates,
-                           :hadoop_home,
-                          ]
+    module StageOptionKeys
+      USER = :user
+      PROJECT = :project
+      RUN_NUMBER = :run_number
+      RUN_MODE = :run_mode
+      EPOCH = :epoch
+      STAGE = :stage
+      LAST_STAGES = :last_stages
+      INPUT_TEMPLATES = :input_templates
+      OUTPUT_TEMPLATES = :output_templates
+      HADOOP_HOME = :hadoop_home
+      FSTYPE = :fstype
+    end
+
+    module PigKeys
+      INPUTS = :inputs
+      OUTPUTS = :outputs
+    end
+
+    include StageOptionKeys
+    include PigKeys
 
     def initialize(source,
                    options = {},
@@ -44,11 +53,11 @@ module Swineherd
       @attributes = attributes
       @stage_options = {}
 
-      @fs = Swineherd::FileSystem.get @options.delete(:fstype)
       @blk = blk
 
       @parent.instance_eval &@blk if @blk
       sort_options
+      @fs = Swineherd::FileSystem.get @stage_options[FSTYPE]
     end
 
     def merge_options new_options
@@ -66,16 +75,16 @@ module Swineherd
     end
 
     def status
-      output_dirs = old_dirs(:output_templates, [@stage_options[:stage]])
-      input_dirs = old_dirs(:input_templates, @stage_options[:last_stages])
+      output_dirs = old_dirs(OUTPUT_TEMPLATES, [@stage_options[STAGE]])
+      input_dirs = old_dirs(INPUT_TEMPLATES, @stage_options[LAST_STAGES])
 
       return :no_inputs if
-        input_dirs.size != (@stage_options[:input_templates].size *
-                            [@stage_options[:last_stages].size,1].max)
+        input_dirs.size != (@stage_options[INPUT_TEMPLATES].size *
+                            [@stage_options[LAST_STAGES].size,1].max)
 
       if output_dirs.size == 0 then
         return :incomplete
-      elsif output_dirs.size < @stage_options[:output_templates].size then
+      elsif output_dirs.size < @stage_options[OUTPUT_TEMPLATES].size then
         return :failed
       end
       
@@ -94,12 +103,12 @@ module Swineherd
     end
 
     def inputs
-      input_directories = old_dirs(:input_templates,
-                                   @stage_options[:last_stages])
+      input_directories = old_dirs(INPUT_TEMPLATES,
+                                   @stage_options[LAST_STAGES])
     end
     
     def outputs
-      return substitute :output_templates
+      return substitute OUTPUT_TEMPLATES
     end
 
     #
@@ -138,7 +147,11 @@ module Swineherd
     end
 
     def sort_options soft = false
-      is_a_stage_option = lambda { |k,v| @@stage_option_keys.index(k) }
+      is_a_stage_option = lambda do |k,v|
+        StageOptionKeys.constants.map do |key|
+          StageOptionKeys.const_get key
+        end.index k
+      end
       
       @stage_options.merge!(@options.select(&is_a_stage_option)) do |k,old,new|
         soft ? old : new
@@ -147,7 +160,7 @@ module Swineherd
     end
 
     def script
-      @attributes.merge!(:inputs => inputs, :outputs => outputs)
+      @attributes.merge!(INPUTS => inputs, OUTPUTS => outputs)
         .merge! @stage_options
 
       # saving this to avoid garbage-collecting Template's temp file...
@@ -176,10 +189,10 @@ module Swineherd
     def old_dirs template_type, stages
       if stages.size > 0
         stages.map do |stage|
-          find_matching_files template_type, :stage => stage, :epoch => '[0-9]+'
+          find_matching_files template_type, STAGE => stage, EPOCH => '[0-9]+'
         end.flatten.compact
       else
-        find_matching_files template_type, :epoch => '[0-9]+'
+        find_matching_files template_type, EPOCH => '[0-9]+'
       end
     end
 

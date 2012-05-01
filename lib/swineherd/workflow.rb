@@ -22,29 +22,47 @@ module Swineherd
     ## These options are used by the workflow and are not passed
     ## directly to stages. Instead, they are pulled out and used to
     ## generate options sent to stages.
-    @@workflow_option_keys = [
-                              :script_dir,
-                              :input_templates,
-                              :output_templates,
-                              :intermediate_templates
-                             ]
+    module WorkflowOptionKeys
+      SCRIPT_DIR = :script_dir
+      INPUT_TEMPLATES = :input_templates
+      OUTPUT_TEMPLATES = :output_templates
+      INTERMEDIATE_TEMPLATES = :intermediate_templates
+    end
+
+    module SharedKeys
+      PROJECT = :project
+      EPOCH = :epoch
+    end
+
+    module StageKeys
+      RUN_MODE = :run_mode
+      STAGE = :stage
+    end
+
+    include WorkflowOptionKeys
+    include SharedKeys
+    include StageKeys
 
     def initialize options = {}, &blk
       @blk = blk
       @options = options
-      @options.merge! :epoch => Time.now.to_flat
+      @options.merge! EPOCH => Time.now.to_flat
 
       @flow_options = {
-        :input_templates =>
+        INPUT_TEMPLATES =>
         ["/user/$user/data/$project/$stage-$run_number-$epoch"],
-        :output_templates =>
+        OUTPUT_TEMPLATES =>
         ["/user/$user/data/$project/$stage-$run_number-$epoch"],
-        :intermediate_templates =>
+        INTERMEDIATE_TEMPLATES =>
         ["/user/$user/tmp/$project/$stage-$run_number-$epoch"],
-        :project => options[:project]
+        PROJECT => options[PROJECT]
       }
 
-      is_a_flow_option = lambda { |k,v| @@workflow_option_keys.index(k) }
+      is_a_flow_option = lambda do |k,v|
+        WorkflowOptionKeys.constants.map do |key|
+          WorkflowOptionKeys.const_get key
+        end.index k
+      end
 
       @flow_options.merge!(@options.select(&is_a_flow_option))
       @options.reject!(&is_a_flow_option)
@@ -56,7 +74,7 @@ module Swineherd
 
       ## run user block given to constructor in parent's scope and
       ## builds input and output directories.
-      namespace @flow_options[:project] do
+      namespace @flow_options[PROJECT] do
         @parent.instance_eval(&@blk)
       end
 
@@ -94,14 +112,14 @@ module Swineherd
         end
       end
 
-      are_prerequisites.each(&soft_merge(:output_templates,
-                                         :intermediate_templates))
-      have_prerequisites.each(&soft_merge(:input_templates,
-                                          :intermediate_templates))
-      (all_stages - are_prerequisites).each(&soft_merge(:output_templates,
-                                                        :output_templates))
-      (all_stages - have_prerequisites).each(&soft_merge(:input_templates,
-                                                         :input_templates))
+      are_prerequisites.each(&soft_merge(OUTPUT_TEMPLATES,
+                                         INTERMEDIATE_TEMPLATES))
+      have_prerequisites.each(&soft_merge(INPUT_TEMPLATES,
+                                          INTERMEDIATE_TEMPLATES))
+      (all_stages - are_prerequisites).each(&soft_merge(OUTPUT_TEMPLATES,
+                                                        OUTPUT_TEMPLATES))
+      (all_stages - have_prerequisites).each(&soft_merge(INPUT_TEMPLATES,
+                                                         INPUT_TEMPLATES))
 
       ## Make sure each stage knows about the stages that come before
       ## it. It uses this information to find the output of the last
@@ -148,7 +166,7 @@ module Swineherd
       name = definition.keys.first
 
       ## create the script
-      @stage_scripts[name] = cls.new(File.join(@flow_options[:script_dir],
+      @stage_scripts[name] = cls.new(File.join(@flow_options[SCRIPT_DIR],
                                                "#{name.to_s}"),
                                      @options,
                                      &blk)
@@ -166,8 +184,8 @@ module Swineherd
 
       ## run things on hadoop by default
       script.merge_options_soft(
-                                :run_mode => :hadoop,
-                                :stage => name
+                                RUN_MODE => :hadoop,
+                                STAGE => name
                                 )
 
       ## Check to see whether we've already run this stage.
