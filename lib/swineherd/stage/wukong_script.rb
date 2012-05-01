@@ -1,5 +1,3 @@
-require 'pathname'
-
 module Swineherd
   class WukongScript < Stage
 

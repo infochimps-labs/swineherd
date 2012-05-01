@@ -85,7 +85,7 @@ module Swineherd
       ## intermediate directories, and then output to an output
       ## directory:
       ##
-      ## input -[stage1]-> intermediate -[stage2]-> output
+      ## in -[stage1]-> tmp -[stage2]-> ... -[stage n-1]-> tmp -[stage n]-> out
 
       def soft_merge stage_param, flow_param
         lambda do |stage_name|
@@ -172,6 +172,9 @@ module Swineherd
 
       ## Check to see whether we've already run this stage.
       case script.status
+      when :no_inputs
+        Log.info "Missing some input directories for #{name}. I can't go on."
+        exit -1
       when :complete
         Log.info "I see outputs for #{name}. skipping stage."
         return
@@ -186,7 +189,7 @@ module Swineherd
       sh script.cmd do |ok, status|
         ok ?
         script.write_success_flag :
-          raise("Stage #{name} failed with exit status #{status}")
+          raise("Stage #{name} perished with exit status #{status}.")
       end
     end
   end

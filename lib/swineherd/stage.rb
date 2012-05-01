@@ -8,6 +8,7 @@ module Swineherd
     def_delegators(:@dsl_handler,
                    :merge_options,
                    :merge_options_soft,
+                   :merge_attributes,
                    :env)
 
     def initialize child
@@ -57,7 +58,7 @@ module Swineherd
 
     def merge_options_soft new_options
       @options.merge!(new_options) {|k,old_v,new_v| old_v}
-      sort_options
+      sort_options true
     end
 
     def merge_attributes attributes
@@ -65,20 +66,23 @@ module Swineherd
     end
 
     def status
-      dirs = old_dirs(:output_templates)
+      output_dirs = old_dirs(:output_templates, [@stage_options[:stage]])
+      input_dirs = old_dirs(:input_templates, @stage_options[:last_stages])
 
-      ## fixme: This does not take into account the possibility of
-      ## multiple output directories with some successes and some
-      ## incompletes. In that case, we'll mark this as
-      ## incomplete. (That's fine when we only have one output
-      ## directory.)
+      return :no_inputs if
+        input_dirs.size != (@stage_options[:input_templates].size *
+                            [@stage_options[:last_stages].size,1].max)
 
-      return :incomplete if dirs.index nil
-
-      dirs.each do |output|
+      if output_dirs.size == 0 then
+        return :incomplete
+      elsif output_dirs.size < @stage_options[:output_templates].size then
+        return :failed
+      end
+      
+      output_dirs.each do |output|
         success_dir = File.join output, "_SUCCESS"
-
-        if @fs.exists? output 
+        
+        if @fs.exists? output
           return :failed unless @fs.exists? success_dir
         else
           return :incomplete
@@ -86,14 +90,12 @@ module Swineherd
       end
 
       return :complete
+        
     end
 
     def inputs
-      last_stages = @stage_options[:last_stages]
-      input_directories = old_dirs :input_templates, {
-        :stage =>
-        last_stages.size > 1 ? "{#{last_stages.join ','}}" : last_stages.first,
-      }
+      input_directories = old_dirs(:input_templates,
+                                   @stage_options[:last_stages])
     end
     
     def outputs
@@ -135,32 +137,49 @@ module Swineherd
       end.join(' ')
     end
 
-    def sort_options
+    def sort_options soft = false
       is_a_stage_option = lambda { |k,v| @@stage_option_keys.index(k) }
-
-      @stage_options.merge!(@options.select(&is_a_stage_option))
+      
+      @stage_options.merge!(@options.select(&is_a_stage_option)) do |k,old,new|
+        soft ? old : new
+      end
       @options.reject!(&is_a_stage_option)
     end
 
     def script
       @attributes.merge!(:inputs => inputs, :outputs => outputs)
         .merge! @stage_options
-      @script ||= Template.new(source, @attributes).substitute!
+
+      # saving this to avoid garbage-collecting Template's temp file...
+      @template_save = Template.new(source, @attributes)
+      @script ||= @template_save.substitute!
     end
 
-    def old_dirs template_type, overrides = {}
-      patterns = substitute template_type, overrides.merge(:epoch => '[0-9]+')
+    #
+    # Temporarily overrides into @stage_options and treat templates
+    # like regular expressions to match files.
+    #
+    def find_matching_files template_type, overrides
+      # FIXME: assuming epoch occurs in leaf directory name. This may
+      # not be true in general, but swineherd-fs does not have support
+      # for globbing, and the most straightforward way to remove the
+      # above assumption is to put globbing in there.
 
-      return patterns.map do |p|
-        matching_inputs = @fs.ls(File.dirname p).select do |dir|
-          Regexp.new(p).match dir
-        end
-        if matching_inputs then
-          matching_inputs.sort.last
-        elsif template_type == :input_templates
-          raise("stage #{@stage_options[:stage]} couldn't find input "         \
-                "directory directory matching #{p}")
-        end
+      substitute(template_type, overrides).map do |pattern|
+        @fs.ls(File.dirname(pattern)).map do |dir|
+          path = dir.split(':', 2)[-1]
+          path if Regexp.new(pattern).match path
+        end.compact.sort.last
+      end.compact
+    end
+
+    def old_dirs template_type, stages
+      if stages.size > 0
+        stages.map do |stage|
+          find_matching_files template_type, :stage => stage, :epoch => '[0-9]+'
+        end.flatten.compact
+      else
+        find_matching_files template_type, :epoch => '[0-9]+'
       end
     end
 

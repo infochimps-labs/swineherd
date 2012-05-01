@@ -6,7 +6,6 @@ require 'gorillib/logger/log'
 module Swineherd
   autoload :Template,     'swineherd/template'
   autoload :Stage,        'swineherd/stage'
-  autoload :StageImpl,    'swineherd/stage'
   autoload :Workflow,     'swineherd/workflow'
   
   # For rake 0.9 compatibility
