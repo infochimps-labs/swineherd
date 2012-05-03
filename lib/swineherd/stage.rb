@@ -1,5 +1,6 @@
 require 'swineherd-fs'
 require 'forwardable'
+require 'swineherd/constants'
 
 module Swineherd
   class StageDelegator
@@ -18,30 +19,7 @@ module Swineherd
 
   class Stage
 
-    ## These options are used by the stage and are not passed directly
-    ## to scripts. Instead, they are pulled out and used to generate
-    ## options sent to scripts
-    module StageOptionKeys
-      USER = :user
-      PROJECT = :project
-      RUN_NUMBER = :run_number
-      RUN_MODE = :run_mode
-      EPOCH = :epoch
-      STAGE = :stage
-      LAST_STAGES = :last_stages
-      INPUT_TEMPLATES = :input_templates
-      OUTPUT_TEMPLATES = :output_templates
-      HADOOP_HOME = :hadoop_home
-      FSTYPE = :fstype
-    end
-
-    module PigKeys
-      INPUTS = :inputs
-      OUTPUTS = :outputs
-    end
-
-    include StageOptionKeys
-    include PigKeys
+    include SwineHerd::AllOptions
 
     def initialize(source,
                    options = {},
@@ -148,8 +126,8 @@ module Swineherd
 
     def sort_options soft = false
       is_a_stage_option = lambda do |k,v|
-        StageOptionKeys.constants.map do |key|
-          StageOptionKeys.const_get key
+        SwineHerd::StageOptions.constants.map do |key|
+          SwineHerd::StageOptions.const_get key
         end.index k
       end
       
