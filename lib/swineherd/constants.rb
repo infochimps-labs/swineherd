@@ -23,6 +23,8 @@ module SwineHerd
       OUTPUT_TEMPLATES = :output_templates
       HADOOP_HOME = :hadoop_home
       FSTYPE = :fstype
+      IN_FSTYPE = :in_fstype
+      OUT_FSTYPE = :out_fstype
   end
 
   module SharedOptions

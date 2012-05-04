@@ -35,7 +35,10 @@ module Swineherd
 
       @parent.instance_eval &@blk if @blk
       sort_options
-      @fs = Swineherd::FileSystem.get @stage_options[FSTYPE]
+      @out_fs = Swineherd::FileSystem.get (@stage_options[OUT_FSTYPE] ||
+                                           @stage_options[FSTYPE])
+      @in_fs = Swineherd::FileSystem.get (@stage_options[IN_FSTYPE] ||
+                                          @stage_options[FSTYPE])
     end
 
     def merge_options new_options
@@ -53,8 +56,12 @@ module Swineherd
     end
 
     def status
-      output_dirs = old_dirs(OUTPUT_TEMPLATES, [@stage_options[STAGE]])
-      input_dirs = old_dirs(INPUT_TEMPLATES, @stage_options[LAST_STAGES])
+      output_dirs = old_dirs(OUTPUT_TEMPLATES,
+                             [@stage_options[STAGE]],
+                             @out_fs)
+      input_dirs = old_dirs(INPUT_TEMPLATES,
+                            @stage_options[LAST_STAGES],
+                            @in_fs)
 
       return :no_inputs if
         input_dirs.size != (@stage_options[INPUT_TEMPLATES].size *
@@ -82,7 +89,8 @@ module Swineherd
 
     def inputs
       input_directories = old_dirs(INPUT_TEMPLATES,
-                                   @stage_options[LAST_STAGES])
+                                   @stage_options[LAST_STAGES],
+                                   @in_fs)
     end
     
     def outputs
@@ -153,27 +161,27 @@ module Swineherd
     # Temporarily overrides into @stage_options and treat templates
     # like regular expressions to match files.
     #
-    def find_matching_files template_type, overrides
+    def find_matching_files template_type, fs, overrides
       # FIXME: assuming epoch occurs in leaf directory name. This may
       # not be true in general, but swineherd-fs does not have support
       # for globbing, and the most straightforward way to remove the
       # above assumption is to put globbing in there.
 
       substitute(template_type, overrides).map do |pattern|
-        @fs.ls(File.dirname(pattern)).map do |dir|
+        fs.ls(File.dirname(pattern)).map do |dir|
           path = /(?:file:|hdfs:\/\/[^\/]*)(.*)/.match(dir)[1]
           path if Regexp.new(pattern).match path
         end.compact.sort.last
       end.compact
     end
 
-    def old_dirs template_type, stages
+    def old_dirs template_type, stages, fs
       if stages.size > 0
         stages.map do |stage|
-          find_matching_files template_type, STAGE => stage, EPOCH => '[0-9]+'
+          find_matching_files template_type, fs, STAGE => stage, EPOCH => '[0-9]+'
         end.flatten.compact
       else
-        find_matching_files template_type, EPOCH => '[0-9]+'
+        find_matching_files template_type, fs, EPOCH => '[0-9]+'
       end
     end
 
