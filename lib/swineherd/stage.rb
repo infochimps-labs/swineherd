@@ -180,7 +180,7 @@ module Swineherd
 
       substitute(template_type, overrides).map do |pattern|
         @fs.ls(File.dirname(pattern)).map do |dir|
-          path = dir.split(':', 2)[-1]
+          path = /(?:file:|hdfs:\/\/[^\/]*)(.*)/.match(dir)[1]
           path if Regexp.new(pattern).match path
         end.compact.sort.last
       end.compact
