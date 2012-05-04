@@ -98,6 +98,9 @@ module Swineherd
 
     def write_success_flag
       outputs.each do |d|
+        # For stages that do things like write to HDFS, create the
+        # directory before writing the success flag.
+        @fs.mkdir_p d
         @fs.open(File.join(d, "_SUCCESS"), "w") do |s|
           s.write("")
         end
