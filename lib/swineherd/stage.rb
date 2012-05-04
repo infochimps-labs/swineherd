@@ -69,9 +69,6 @@ module Swineherd
       # that we should fail.
       if input_dirs.size < (@stage_options[INPUT_TEMPLATES].size *
                             [@stage_options[LAST_STAGES].size,1].max) then
-        puts input_dirs.size
-        puts @stage_options[INPUT_TEMPLATES].size
-        puts [@stage_options[LAST_STAGES].size,1].max
         return :no_inputs
       end
 
@@ -176,10 +173,8 @@ module Swineherd
       # above assumption is to put globbing in there.
 
       substitute(template_type, overrides).map do |pattern|
-        require 'pp'; puts "!!!"; pp pattern, File.dirname(pattern), fs.ls(File.dirname(pattern))
         fs.ls(File.dirname(pattern)).map do |dir|
           path = /(?:file:|hdfs:\/\/[^\/]*)?(.*)/.match(dir)[1]
-          pp path
 
           # FIXME: hacks below. This is necessary because the output
           # of swineherd's ls is not compatible with the values that
