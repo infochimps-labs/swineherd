@@ -1,6 +1,7 @@
 require 'forwardable'
 require 'time'
 require 'gorillib/datetime/flat'
+require 'swineherd/constants'
 
 module Swineherd
   class WorkflowDelegator
@@ -19,29 +20,7 @@ module Swineherd
 
   class Workflow
 
-    ## These options are used by the workflow and are not passed
-    ## directly to stages. Instead, they are pulled out and used to
-    ## generate options sent to stages.
-    module WorkflowOptionKeys
-      SCRIPT_DIR = :script_dir
-      INPUT_TEMPLATES = :input_templates
-      OUTPUT_TEMPLATES = :output_templates
-      INTERMEDIATE_TEMPLATES = :intermediate_templates
-    end
-
-    module SharedKeys
-      PROJECT = :project
-      EPOCH = :epoch
-    end
-
-    module StageKeys
-      RUN_MODE = :run_mode
-      STAGE = :stage
-    end
-
-    include WorkflowOptionKeys
-    include SharedKeys
-    include StageKeys
+    include SwineHerd::AllOptions
 
     def initialize options = {}, &blk
       @blk = blk
@@ -59,8 +38,8 @@ module Swineherd
       }
 
       is_a_flow_option = lambda do |k,v|
-        WorkflowOptionKeys.constants.map do |key|
-          WorkflowOptionKeys.const_get key
+        SwineHerd::WorkflowOptions.constants.map do |key|
+          SwineHerd::WorkflowOptions.const_get key
         end.index k
       end
 
