@@ -63,9 +63,17 @@ module Swineherd
                             @stage_options[LAST_STAGES],
                             @in_fs)
 
-      return :no_inputs if
-        input_dirs.size != (@stage_options[INPUT_TEMPLATES].size *
-                            [@stage_options[LAST_STAGES].size,1].max)
+      # just a quick check. This is not sufficient if an input
+      # template is designed to match more than one input. However, if
+      # we see less inputs than templates, it should be safe to assume
+      # that we should fail.
+      if input_dirs.size < (@stage_options[INPUT_TEMPLATES].size *
+                            [@stage_options[LAST_STAGES].size,1].max) then
+        puts input_dirs.size
+        puts @stage_options[INPUT_TEMPLATES].size
+        puts [@stage_options[LAST_STAGES].size,1].max
+        return :no_inputs
+      end
 
       if output_dirs.size == 0 then
         return :incomplete
@@ -76,8 +84,8 @@ module Swineherd
       output_dirs.each do |output|
         success_dir = File.join output, "_SUCCESS"
         
-        if @fs.exists? output
-          return :failed unless @fs.exists? success_dir
+        if @out_fs.exists? output
+          return :failed unless @out_fs.exists? success_dir
         else
           return :incomplete
         end
@@ -108,8 +116,8 @@ module Swineherd
       outputs.each do |d|
         # For stages that do things like write to HDFS, create the
         # directory before writing the success flag.
-        @fs.mkdir_p d
-        @fs.open(File.join(d, "_SUCCESS"), "w") do |s|
+        @out_fs.mkdir_p d
+        @out_fs.open(File.join(d, "_SUCCESS"), "w") do |s|
           s.write("")
         end
       end
@@ -168,9 +176,16 @@ module Swineherd
       # above assumption is to put globbing in there.
 
       substitute(template_type, overrides).map do |pattern|
+        require 'pp'; puts "!!!"; pp pattern, File.dirname(pattern), fs.ls(File.dirname(pattern))
         fs.ls(File.dirname(pattern)).map do |dir|
-          path = /(?:file:|hdfs:\/\/[^\/]*)(.*)/.match(dir)[1]
-          path if Regexp.new(pattern).match path
+          path = /(?:file:|hdfs:\/\/[^\/]*)?(.*)/.match(dir)[1]
+          pp path
+
+          # FIXME: hacks below. This is necessary because the output
+          # of swineherd's ls is not compatible with the values that
+          # hadoop will accept for inputs and outputs.
+          path = "s3n://#{path}" if fs.class == Swineherd::S3FileSystem
+          path if Regexp.new(pattern.sub(/s3n?:\/\//,'')).match path
         end.compact.sort.last
       end.compact
     end
