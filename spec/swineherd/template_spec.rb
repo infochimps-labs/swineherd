@@ -11,10 +11,10 @@ describe Swineherd::Template do
     demo_pig_script.should be_a(Swineherd::Template)
   end
 
-  context '#contents' do
-    it 'autovivifies from its template' do
-      subject.content.should =~ /graph   = LOAD .*my_degree_distribution';/
-     end
-  end
+  # context '#contents' do
+  #   it 'autovivifies from its template' do
+  #     subject.content.should =~ /graph   = LOAD .*my_degree_distribution';/
+  #    end
+  # end
 
 end
