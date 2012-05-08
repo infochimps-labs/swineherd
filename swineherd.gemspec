@@ -4,66 +4,96 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = %q{swineherd}
-  s.version = "0.0.6"
+  s.name = "swineherd"
+  s.version = "0.4.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Jacob Perkins"]
-  s.date = %q{2011-12-01}
-  s.description = %q{Swineherd is for running scripts and workflows on filesystems.}
-  s.email = %q{jacob.a.perkins@gmail.com}
-  s.executables = ["hdp-tree", "hadoop-stream"]
+  s.authors = ["Jacob Perkins (@ganglion)", "Travis Dempsey (@kornypoet)", "Philip (flip) Kromer (@mrflip)", "Kurt Bollacker (@bollacker)", "Josh Bronson (@joshbronson)", "Dhruv Bansal (@dhruvbansal)"]
+  s.date = "2012-05-07"
+  s.description = "Swineherd gives a humane, coherent, and filesystem-abstract interface to otherwise-horrible runners (looking at you, java-anything)."
+  s.email = "coders@infochimps.com"
+  s.executables = ["hadoop-stream", "hdp-tree"]
   s.extra_rdoc_files = [
     "LICENSE",
+    "LICENSE.md",
     "README.textile"
   ]
   s.files = [
+    ".rspec",
+    ".yardopts",
+    "CHANGELOG.md",
+    "Gemfile",
+    "Guardfile",
     "LICENSE",
+    "LICENSE.md",
     "README.textile",
     "Rakefile",
     "VERSION",
     "bin/hadoop-stream",
     "bin/hdp-tree",
+    "examples/cook_food.rb",
+    "examples/cook_food/fiddle.gv",
+    "examples/cook_food/kitchen.rb",
+    "examples/examples_helper.rb",
+    "examples/flow.rb",
+    "examples/foo.rb",
     "examples/pagerank/data/seinfeld_network.tsv",
     "examples/pagerank/pagerank.rb",
     "examples/pagerank/scripts/cut_off_list.rb",
     "examples/pagerank/scripts/histogram.R",
     "examples/pagerank/scripts/pagerank.pig",
     "examples/pagerank/scripts/pagerank_initialize.pig",
+    "examples/swineherd/parse_workflow.rb",
+    "examples/swineherd/run.rb",
+    "examples/swineherd/trstrank_workflow.rb",
+    "examples/tasks/backup_example.rb",
+    "examples/tasks/compilation.rb",
+    "examples/tasks/dependency_examples.rb",
+    "examples/tasks/github_repo.rb",
+    "examples/tasks/rails_example.rb",
+    "examples/tasks/scratch.rb",
+    "examples/tasks/simple_examples.rb",
+    "examples/tasks/subtree_repoman.md",
+    "examples/tasks/subtree_repoman.rb",
     "lib/swineherd.rb",
-    "lib/swineherd/filesystem.rb",
-    "lib/swineherd/filesystem/README_filesystem.textile",
-    "lib/swineherd/filesystem/basefilesystem.rb",
-    "lib/swineherd/filesystem/filesystems.rb",
-    "lib/swineherd/filesystem/hadoopfilesystem.rb",
-    "lib/swineherd/filesystem/localfilesystem.rb",
-    "lib/swineherd/filesystem/localfs.rb",
-    "lib/swineherd/filesystem/s3filesystem.rb",
-    "lib/swineherd/script.rb",
-    "lib/swineherd/script/hadoop_script.rb",
-    "lib/swineherd/script/pig_script.rb",
-    "lib/swineherd/script/r_script.rb",
-    "lib/swineherd/script/wukong_script.rb",
+    "lib/swineherd/constants.rb",
+    "lib/swineherd/stage.rb",
+    "lib/swineherd/stage/hadoop_script.rb",
+    "lib/swineherd/stage/pig_script.rb",
+    "lib/swineherd/stage/r_script.rb",
+    "lib/swineherd/stage/stream_script.rb",
+    "lib/swineherd/stage/wukong_script.rb",
     "lib/swineherd/template.rb",
     "lib/swineherd/workflow.rb",
     "lib/swineherd/workflow/job.rb",
     "notes.txt",
+    "spec/fixtures/demo_pig_script.pig.erb",
+    "spec/spec_helper.rb",
+    "spec/swineherd/template_spec.rb",
     "swineherd.gemspec",
     "tests/test_filesystem.rb",
     "tests/test_s3_filesystem.rb",
     "tests/testcfg.yaml.example"
   ]
-  s.homepage = %q{http://github.com/Ganglion/swineherd}
-  s.licenses = ["MIT"]
+  s.homepage = "http://github.com/infochimps-labs/swineherd"
+  s.licenses = ["Apache 2.0"]
   s.require_paths = ["lib"]
-  s.rubygems_version = %q{1.3.6}
-  s.summary = %q{Flexible data workflow glue.}
+  s.rubygems_version = "1.8.11"
+  s.summary = "Flexible workflow glue."
 
   if s.respond_to? :specification_version then
-    current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
     s.specification_version = 3
 
-    if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
+    if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
+      s.add_runtime_dependency(%q<configliere>, [">= 0"])
+      s.add_runtime_dependency(%q<gorillib>, [">= 0"])
+      s.add_runtime_dependency(%q<multi_json>, ["~> 1.1"])
+      s.add_runtime_dependency(%q<json>, [">= 0"])
+      s.add_runtime_dependency(%q<erubis>, [">= 2.7"])
+      s.add_runtime_dependency(%q<right_aws>, [">= 3.0.4"])
+      s.add_development_dependency(%q<bundler>, ["~> 1"])
+      s.add_development_dependency(%q<pry>, [">= 0"])
+      s.add_development_dependency(%q<jeweler>, ["~> 1.6"])
       s.add_development_dependency(%q<rspec>, ["> 2.7.0"])
       s.add_development_dependency(%q<watchr>, ["> 0.7"])
       s.add_development_dependency(%q<yard>, ["~> 0.6.0"])
@@ -74,6 +104,15 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<erubis>, [">= 0"])
       s.add_runtime_dependency(%q<right_aws>, [">= 0"])
     else
+      s.add_dependency(%q<configliere>, [">= 0"])
+      s.add_dependency(%q<gorillib>, [">= 0"])
+      s.add_dependency(%q<multi_json>, ["~> 1.1"])
+      s.add_dependency(%q<json>, [">= 0"])
+      s.add_dependency(%q<erubis>, [">= 2.7"])
+      s.add_dependency(%q<right_aws>, [">= 3.0.4"])
+      s.add_dependency(%q<bundler>, ["~> 1"])
+      s.add_dependency(%q<pry>, [">= 0"])
+      s.add_dependency(%q<jeweler>, ["~> 1.6"])
       s.add_dependency(%q<rspec>, ["> 2.7.0"])
       s.add_dependency(%q<watchr>, ["> 0.7"])
       s.add_dependency(%q<yard>, ["~> 0.6.0"])
@@ -85,6 +124,15 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<right_aws>, [">= 0"])
     end
   else
+    s.add_dependency(%q<configliere>, [">= 0"])
+    s.add_dependency(%q<gorillib>, [">= 0"])
+    s.add_dependency(%q<multi_json>, ["~> 1.1"])
+    s.add_dependency(%q<json>, [">= 0"])
+    s.add_dependency(%q<erubis>, [">= 2.7"])
+    s.add_dependency(%q<right_aws>, [">= 3.0.4"])
+    s.add_dependency(%q<bundler>, ["~> 1"])
+    s.add_dependency(%q<pry>, [">= 0"])
+    s.add_dependency(%q<jeweler>, ["~> 1.6"])
     s.add_dependency(%q<rspec>, ["> 2.7.0"])
     s.add_dependency(%q<watchr>, ["> 0.7"])
     s.add_dependency(%q<yard>, ["~> 0.6.0"])
@@ -96,4 +144,3 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<right_aws>, [">= 0"])
   end
 end
-

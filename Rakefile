@@ -3,15 +3,18 @@ require 'rake'
 
 require 'jeweler'
 Jeweler::Tasks.new do |gem|
-  # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
-  gem.name = "swineherd"
-  gem.homepage = "http://github.com/Ganglion/swineherd"
-  gem.license = "MIT"
-  gem.summary = %Q{Flexible data workflow glue.}
-  gem.description = %Q{Swineherd is for running scripts and workflows on filesystems.}
-  gem.email = "jacob.a.perkins@gmail.com"
-  gem.authors = ["Jacob Perkins"]
-  # Include your dependencies below. Runtime dependencies are required when using your gem,
+  gem.name        = "swineherd"
+  gem.homepage    = "http://github.com/infochimps-labs/swineherd"
+  gem.license     = "Apache 2.0"
+  gem.summary     = %Q{Flexible workflow glue.}
+  gem.description = %Q{Swineherd gives a humane, coherent, and filesystem-abstract interface to otherwise-horrible runners (looking at you, java-anything).}
+  gem.email       = "coders@infochimps.com"
+  gem.authors     = [
+    "Jacob Perkins (@ganglion)",   "Travis Dempsey (@kornypoet)", "Philip (flip) Kromer (@mrflip)",
+    "Kurt Bollacker (@bollacker)", "Josh Bronson (@joshbronson)",
+  ]
+
+  # include your dependencies below. Runtime dependencies are required when using your gem,
   # and development dependencies are only needed for development (ie running rake tasks, tests, etc)
   #  gem.add_runtime_dependency 'jabber4r', '> 0.1'
   gem.add_development_dependency 'rspec', '> 2.7.0'
