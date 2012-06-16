@@ -87,73 +87,73 @@ module UnixUtils
 
   # --
 
-  def self.unzip(infile)
-    infile = ::File.expand_path infile
-    destdir = tmp_path infile
-    ::FileUtils.mkdir destdir
-    argv = ['unzip', '-qq', '-n', infile, '-d', destdir]
-    spawn argv
-    destdir
-  end
-
-  def self.untar(infile)
-    infile = ::File.expand_path infile
-    destdir = tmp_path infile
-    ::FileUtils.mkdir destdir
-    argv = ['tar', '-xf', infile, '-C', destdir]
-    spawn argv
-    destdir
-  end
-
-  def self.gunzip(infile)
-    infile = ::File.expand_path infile
-    outfile = tmp_path infile
-    argv = ['gunzip', '--stdout', infile]
-    spawn argv, :write_to => outfile
-    outfile
-  end
-
-  def self.bunzip2(infile)
-    infile = ::File.expand_path infile
-    outfile = tmp_path infile
-    argv = ['bunzip2', '--stdout', infile]
-    spawn argv, :write_to => outfile
-    outfile
-  end
+  # def self.unzip(infile)
+  #   infile = ::File.expand_path infile
+  #   destdir = tmp_path infile
+  #   ::FileUtils.mkdir destdir
+  #   argv = ['unzip', '-qq', '-n', infile, '-d', destdir]
+  #   spawn argv
+  #   destdir
+  # end
+  #
+  # def self.untar(infile)
+  #   infile = ::File.expand_path infile
+  #   destdir = tmp_path infile
+  #   ::FileUtils.mkdir destdir
+  #   argv = ['tar', '-xf', infile, '-C', destdir]
+  #   spawn argv
+  #   destdir
+  # end
+  #
+  # def self.gunzip(infile)
+  #   infile = ::File.expand_path infile
+  #   outfile = tmp_path infile
+  #   argv = ['gunzip', '--stdout', infile]
+  #   spawn argv, :write_to => outfile
+  #   outfile
+  # end
+  #
+  # def self.bunzip2(infile)
+  #   infile = ::File.expand_path infile
+  #   outfile = tmp_path infile
+  #   argv = ['bunzip2', '--stdout', infile]
+  #   spawn argv, :write_to => outfile
+  #   outfile
+  # end
 
   # --
 
-  def self.bzip2(infile)
-    infile = ::File.expand_path infile
-    outfile = tmp_path infile, '.bz2'
-    argv = ['bzip2', '--keep', '--stdout', infile]
-    spawn argv, :write_to => outfile
-    outfile
-  end
-
-  def self.tar(srcdir)
-    srcdir = ::File.expand_path srcdir
-    outfile = tmp_path srcdir, '.tar'
-    argv = ['tar', '-cf', outfile, '-C', srcdir, '.']
-    spawn argv
-    outfile
-  end
-
-  def self.zip(srcdir)
-    srcdir = ::File.expand_path srcdir
-    outfile = tmp_path srcdir, '.zip'
-    argv = ['zip', '-rq', outfile, '.']
-    spawn argv, :chdir => srcdir
-    outfile
-  end
-
-  def self.gzip(infile)
-    infile = ::File.expand_path infile
-    outfile = tmp_path infile, '.gz'
-    argv = ['gzip', '--stdout', infile]
-    spawn argv, :write_to => outfile
-    outfile
-  end
+  # def self.bzip2(infile)
+  #   infile = ::File.expand_path infile
+  #   outfile = tmp_path infile, '.bz2'
+  #   argv = ['bzip2', '--keep', '--stdout', infile]
+  #   spawn argv, :write_to => outfile
+  #   outfile
+  # end
+  #
+  # def self.tar(srcdir)
+  #   srcdir = ::File.expand_path srcdir
+  #   outfile = tmp_path srcdir, '.tar'
+  #   argv = ['tar', '-cf', outfile, '-C', srcdir, '.']
+  #   spawn argv
+  #   outfile
+  # end
+  #
+  # def self.zip(srcdir)
+  #   srcdir = ::File.expand_path srcdir
+  #   outfile = tmp_path srcdir, '.zip'
+  #   argv = ['zip', '-rq', outfile, '.']
+  #   spawn argv, :chdir => srcdir
+  #   outfile
+  # end
+  #
+  # def self.gzip(infile)
+  #   infile = ::File.expand_path infile
+  #   outfile = tmp_path infile, '.gz'
+  #   argv = ['gzip', '--stdout', infile]
+  #   spawn argv, :write_to => outfile
+  #   outfile
+  # end
 
   # --
 

@@ -3,7 +3,6 @@ module Swineherd
 
     BUFSIZE = 2**16
 
-
     def self.command_available?(bin) # :nodoc:
       bin = bin.to_s
       return @@available_query[bin] if defined?(@@available_query) and @@available_query.is_a?(::Hash) and @@available_query.has_key?(bin)
@@ -13,6 +12,11 @@ module Swineherd
     end
 
     def self.run_command(argv, options = {}) # :nodoc:
+      if options[:noop]
+        Log.info(":noop set, skipping execution of #{argv.inspect} #{options.inspect}")
+        return true
+      end
+
       options = options.dup
 
       input =
@@ -75,7 +79,7 @@ module Swineherd
 
       error.rewind
       unless (whole_error = error.read).empty?
-        $stderr.puts "[unix_utils] `#{argv.join(' ')}` STDERR:"
+        $stderr.puts "[Swineherd::Resource] `#{argv.join(' ')}` STDERR:"
         $stderr.puts whole_error
       end
 
