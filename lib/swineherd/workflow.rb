@@ -12,7 +12,7 @@ module Swineherd
                    :run,
                    :chain,
                    :stage)
-    
+
     def initialize child
       @dsl_handler = child
     end
@@ -28,13 +28,10 @@ module Swineherd
       @options.merge! EPOCH => Time.now.to_flat
 
       @flow_options = {
-        INPUT_TEMPLATES =>
-        ["/user/$user/data/$project/$stage-$run_number-$epoch"],
-        OUTPUT_TEMPLATES =>
-        ["/user/$user/data/$project/$stage-$run_number-$epoch"],
-        INTERMEDIATE_TEMPLATES =>
-        ["/user/$user/tmp/$project/$stage-$run_number-$epoch"],
-        PROJECT => options[PROJECT]
+        INPUT_TEMPLATES        => ["/user/$user/data/$project/$stage-$run_number-$epoch"],
+        OUTPUT_TEMPLATES       => ["/user/$user/data/$project/$stage-$run_number-$epoch"],
+        INTERMEDIATE_TEMPLATES => ["/user/$user/tmp/$project/$stage-$run_number-$epoch"],
+        PROJECT                => options [PROJECT]
       }
 
       is_a_flow_option = lambda do |k,v|
@@ -62,7 +59,7 @@ module Swineherd
       ##
       ## 1. those that have prerequisites
       ## 2. those that are prerequisites
-      
+
       remove_scope = lambda {|name| name.split(":").last.to_sym}
 
       all_stages = Rake::Task.tasks.map(&:name).map(&remove_scope)
@@ -91,14 +88,10 @@ module Swineherd
         end
       end
 
-      are_prerequisites.each(&soft_merge(OUTPUT_TEMPLATES,
-                                         INTERMEDIATE_TEMPLATES))
-      have_prerequisites.each(&soft_merge(INPUT_TEMPLATES,
-                                          INTERMEDIATE_TEMPLATES))
-      (all_stages - are_prerequisites).each(&soft_merge(OUTPUT_TEMPLATES,
-                                                        OUTPUT_TEMPLATES))
-      (all_stages - have_prerequisites).each(&soft_merge(INPUT_TEMPLATES,
-                                                         INPUT_TEMPLATES))
+      are_prerequisites.each(&soft_merge(OUTPUT_TEMPLATES, INTERMEDIATE_TEMPLATES))
+      have_prerequisites.each(&soft_merge(INPUT_TEMPLATES, INTERMEDIATE_TEMPLATES))
+      (all_stages - are_prerequisites).each(&soft_merge(OUTPUT_TEMPLATES, OUTPUT_TEMPLATES))
+      (all_stages - have_prerequisites).each(&soft_merge(INPUT_TEMPLATES, INPUT_TEMPLATES))
 
       ## Make sure each stage knows about the stages that come before
       ## it. It uses this information to find the output of the last
@@ -139,16 +132,12 @@ module Swineherd
     def stage cls, definition, &blk
 
       definition = {definition => []} unless definition.is_a? Hash
-      definition.values.first.push(@last_stages).flatten! unless
-        @chain_depth == 0 
+      definition.values.first.push(@last_stages).flatten! unless @chain_depth == 0
 
       name = definition.keys.first
 
       ## create the script
-      @stage_scripts[name] = cls.new(File.join(@flow_options[SCRIPT_DIR],
-                                               "#{name.to_s}"),
-                                     @options,
-                                     &blk)
+      @stage_scripts[name] = cls.new(File.join(@flow_options[SCRIPT_DIR], "#{name.to_s}"), @options, &blk)
 
       ## schedule this task for running
       task definition do
@@ -162,10 +151,7 @@ module Swineherd
     def run_stage script, name
 
       ## run things on hadoop by default
-      script.merge_options_soft(
-                                RUN_MODE => :hadoop,
-                                STAGE => name
-                                )
+      script.merge_options_soft( RUN_MODE => :hadoop, STAGE => name )
 
       ## Check to see whether we've already run this stage.
       case script.status

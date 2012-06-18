@@ -1,7 +1,7 @@
 module Swineherd
   module Resource
 
-    BUFSIZE = 2**16
+    BUFSIZE = 2**16 unless defined?(Swineherd::Resource::BUFSIZE)
 
     def self.command_available?(bin) # :nodoc:
       bin = bin.to_s
@@ -12,12 +12,14 @@ module Swineherd
     end
 
     def self.run_command(argv, options = {}) # :nodoc:
+      argv    = argv.map(&:to_s)
+      options = options.dup
+      options[:chdir] = options[:chdir].to_s if options[:chdir].present?
+
       if options[:noop]
         Log.info(":noop set, skipping execution of #{argv.inspect} #{options.inspect}")
         return true
       end
-
-      options = options.dup
 
       input =
         if (read_from = options.delete(:read_from))
