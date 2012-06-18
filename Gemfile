@@ -1,39 +1,35 @@
 source "http://rubygems.org"
 
-gem 'configliere',    :git => File.expand_path('../configliere/.git', File.dirname(__FILE__))
-gem 'gorillib',       :git => File.expand_path('../gorillib/.git', File.dirname(__FILE__)),    :branch => 'version_1'
+gem 'gorillib',       :path => '../gorillib'
+gem 'configliere',    "~> 0.4.8"
 
-gem     'multi_json', "~> 1.1"
-gem     'json'
+gem 'multi_json',     "~> 1.1"
+gem 'yajl-ruby',      "~> 1.1", :platform => :mri
+gem 'json',                     :platform => :jruby
 gem     'erubis',     ">= 2.7"
 gem     'right_aws',  ">= 3.0.4"
 
-# Add dependencies to develop your gem here.
-# Include everything needed to run rake, tests, features, etc.
 group :development do
-  gem   'bundler',    "~> 1"
-  gem   'pry'
-  gem   'jeweler',    "~> 1.6"
+  gem 'bundler',     "~> 1"
+  gem 'jeweler',     "~> 1.6"
+  gem 'pry'
 end
 
 group :docs do
-  gem   'yard',       "~> 0.7"
-  gem   'redcarpet',  "~> 2.1"
-  gem   'RedCloth'
+  gem 'yard',        ">= 0.7"
+  gem 'RedCloth',    "~> 4.2"
+  gem 'redcarpet',   "~> 2.1"
 end
 
 group :test do
-  gem   'rspec',      "~> 2.5"
+  gem 'rspec',       "~> 2.8"
+  gem 'guard',       ">= 1.0"
+  gem 'guard-rspec', ">= 0.6"
+  gem 'guard-yard'
+  gem 'guard-process'
+
   if RUBY_PLATFORM.include?('darwin')
-    gem 'rb-fsevent', "~> 0.9"
-    # gem 'growl',      "~> 1"
-    # gem 'ruby_gntp'
+    gem 'growl',      ">= 1"
+    gem 'rb-fsevent', ">= 0.9"
   end
-
-  gem   'guard',      "~> 1"
-  gem   'guard-rspec'
-  gem   'guard-yard'
-  gem   'guard-process'
-
-  gem 'simplecov',  ">= 0.5",   :platform => :ruby_19
 end
