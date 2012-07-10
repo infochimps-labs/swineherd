@@ -1,4 +1,4 @@
-require 'posix/spawn'
+# require 'posix/spawn'
 
 # require 'fileutils'
 # require 'tmpdir'
@@ -6,15 +6,18 @@ require 'posix/spawn'
 # require 'stringio'
 # require 'securerandom'
 
-require 'gorillib/some'
+require 'gorillib/pathname'
 require 'gorillib/model'
 require 'gorillib/builder'
+require 'gorillib/type/url'
+require 'gorillib/hash/keys'
+
+require 'formatador'
 
 require 'swineherd/error'
+
 require 'swineherd/resource/spawn'
 require 'swineherd/resource/bundle'
-
-require 'gorillib/type/url'
 require 'swineherd/resource/http_resource'
 
 require 'swineherd/project'
