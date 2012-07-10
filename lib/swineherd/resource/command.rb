@@ -1,27 +1,27 @@
 module Swineherd
   module Resource
 
-    class RunStats
-      field :beg_time, Time, position: 0, doc: "Start time"
-      field :end_time,
-    end
-
     class Command
       include Gorillib::Model
       include Gorillib::CheckedPopen
 
-      class_attribute :exe_path
-
-      def run
-
+      # handle to the Pathname.register_path'ed executable for this command type
+      class_attribute :exe_path_handle
+      # executable pathname
+      def exe_path
+        Pathname.path_to(exe_path_handle)
       end
 
-      def run_with_stats(command, stdin)
-        start  = Time.now
-        finish =
+      def run(*argv)
+        checked_popen [exe_path, *argv] do |process|
+          p process
+        end
       end
-
-
     end
+
+    class CopyCommand < Command
+      self.exe_path_handle = :cp_exe
+    end
+
   end
 end

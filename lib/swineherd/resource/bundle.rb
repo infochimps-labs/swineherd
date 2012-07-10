@@ -1,15 +1,18 @@
 module Swineherd
   module Resource
 
-    Pathname.register_default_paths(
-      :bzip2_exe   => 'bzip2',
-      :bunzip2_exe => 'bunzip2',
-      :gzip_exe    => 'gzip',
-      :gunzip_exe  => 'gunzip',
-      :zip_exe     => 'zip',
-      :unzip_exe   => 'unzip',
-      :tar_exe     => 'tar',
-      )
+    FileAsset.class_eval do
+      include Swineherd::Resource::Bundle
+
+      # Decorate the resource with methods appropriate for its bundle type
+      def bundleize(bundle_type = nil)
+        bundle_type ||= self.filetype  or raise Swineherd::ResourceActionError, "Cannot identify #{self} -- #{extname} doesn't match a known type"
+        bundle_info =  self.class.file_type_info(bundle_type) or raise Swineherd::ResourceActionError, "Tried to bundlize #{self} as #{bundle_type.inspect}, which is not a bundle type"
+        extend Swineherd::Resource::Bundle
+        bundle_info[:mixins].each{|mixin| extend(mixin) }
+        self
+      end
+    end
 
     #
     # Some code taken from UnixUtils -- https://github.com/seamusabshere/unix_utils/blob/master/lib/unix_utils.rb
@@ -17,20 +20,16 @@ module Swineherd
     module Bundle
       extend Gorillib::Concern
 
-      BUNDLE_KINDS = {} unless defined?(Swineherd::Resource::Bundle::BUNDLE_KINDS)
-
-      def fileext_re(kind)  BUNDLE_KINDS[kind][:fileext_re] ; end
-      def fileext_for(kind) BUNDLE_KINDS[kind][:fileext]    ; end
-      def unbundled_name()   self.class.new(self.to_s.gsub(fileext_re(file_type), '')) ; end
-      def bundled_name(kind) self.class.new("#{self}.#{fileext_for(kind)}")       ; end
+      def unbundled_path()   Pathname.new(path.to_s.gsub(fileext_re(file_type), '')) ; end
+      def bundled_path(kind) Pathname.new("#{path}.#{fileext_for(kind)}")       ; end
 
       def unbundle(options={})
-        into = options[:into].nil? ? unbundled_name : normalize(options[:into])
+        into = options[:into].nil? ? unbundled_name : Pathname.normalize(options[:into])
         into.check_absent!(options[:exists]) or return into
         #
         *argv, opts = unbundle_command(into, options)
         opts.merge!(options.slice(:noop))
-        Log.debug("unbundling '#{self}' (#{file_kind}) into '#{into}': #{argv.join(" ")} #{opts.inspect}")
+        Log.debug("unbundling '#{path}' (#{filetype}) into '#{into}': #{argv.join(" ")} #{opts.inspect}")
         into.dirname.mkpath
         Swineherd::Resource.run_command(argv, opts)
         into
@@ -41,9 +40,9 @@ module Swineherd
         into = options[:into].nil? ? bundled_name(kind) : normalize(options[:into])
         into.check_absent!(options[:exists]) or return into
         #
-        *argv, opts = into.bundleize(kind).bundle_command(self, options)
+        *argv, opts = into.bundleize(kind).bundle_command(path, options)
         opts.merge!(options.slice(:noop))
-        Log.debug("bundling '#{self}' into '#{into}' (#{kind}): #{argv.join(" ")} #{opts.inspect}")
+        Log.debug("bundling '#{path}' into '#{into}' (#{kind}): #{argv.join(" ")} #{opts.inspect}")
         into.dirname.mkpath
         Swineherd::Resource.run_command(argv, opts)
         into
@@ -53,45 +52,39 @@ module Swineherd
 
       module Bzip
         extend Gorillib::Concern
-        BUNDLE_KINDS[:bzip] = { :fileext => 'bz2', :fileext_re => /\.(bz2)/, :mixins => [self]}
+        FILE_TYPE_INFO[:bzip][:mixins] = self
         def file_type() :bzip ; end
-        def unbundle_command(into, options)
-          cmd = [relpath_to(:bunzip2_exe), '--stdout', '--keep', self]
-          [*cmd, { :write_to => into }]
-        end
-        def bundle_command(from, options)
-          cmd = [relpath_to(:bzip2_exe),   '--stdout', '--keep', from]
-          [*cmd, { :write_to => self }]
-        end
+        def unbundle_command(into, options) [relpath_to(:bunzip2_exe), '--stdout', '--keep', path, { write_to: into }] ; end
+        def bundle_command(from, options)   [relpath_to(:bzip2_exe),   '--stdout', '--keep', from, { write_to: path }] ; end
       end
 
       module Gzip
         extend Gorillib::Concern
-        BUNDLE_KINDS[:gzip] = { :fileext => 'gz', :fileext_re => /\.(gz)/, :mixins => [self]}
+        FILE_TYPE_INFO[:gzip][:mixins] = [self]
         def file_type() :gzip ; end
-        def unbundle_command(into, options) [relpath_to(:gunzip_exe), '--stdout', self, { :write_to => into }] ; end
-        def bundle_command(from, options)   [relpath_to(:gzip_exe),   '--stdout', from, { :write_to => self    }] ; end
+        def unbundle_command(into, options) [relpath_to(:gunzip_exe), '--stdout', path, { write_to: into }] ; end
+        def bundle_command(from, options)   [relpath_to(:gzip_exe),   '--stdout', from, { write_to: path    }] ; end
       end
 
       module Zip
         extend Gorillib::Concern
-        BUNDLE_KINDS[:zip] = { :fileext => 'zip', :fileext_re => /\.(zip)/, :mixins => [self]}
+        FILE_TYPE_INFO[:zip][:mixins] = [self]
         def file_type() :zip ; end
-        def unbundle_command(into, options) [relpath_to(:unzip_exe), '-qq', '-n', self, '-d',  into, {}] ; end
-        def bundle_command(from, options)   [relpath_to(:zip_exe),   '-rq', self, from.basename,     { :chdir => from.dirname }] ; end
+        def unbundle_command(into, options) [relpath_to(:unzip_exe), '-qq', '-n', path, '-d',  into, {}] ; end
+        def bundle_command(from, options)   [relpath_to(:zip_exe),   '-rq', path, from.basename,     { chdir: from.dirname }] ; end
       end
 
       module Tar
         extend Gorillib::Concern
-        BUNDLE_KINDS[:tar] = { :fileext => 'tar', :fileext_re => /\.(tar)/, :mixins => [self]}
+        FILE_TYPE_INFO[:tar][:mixins] = [self]
         def file_type() :tar ; end
-        def unbundle_command(into, options) ; [relpath_to(:tar_exe), '-xf', self, '-C', into.dirname,                {}] ; end
-        def bundle_command(from, options)   ; [relpath_to(:tar_exe), '-cf', self, '-C', from.dirname, from.basename, {}] ; end
+        def unbundle_command(into, options) ; [relpath_to(:tar_exe), '-xf', path, '-C', into.dirname,                {}] ; end
+        def bundle_command(from, options)   ; [relpath_to(:tar_exe), '-cf', path, '-C', from.dirname, from.basename, {}] ; end
       end
 
       module TarGzip
         extend Gorillib::Concern
-        BUNDLE_KINDS[:tar_gzip] = { :fileext => 'tar.gz', :fileext_re => /\.(tar\.gz|tgz)/, :mixins => [Tar, self]}
+        FILE_TYPE_INFO[:tar_gzip][:mixins] = [Tar, self]
         def file_type() :tar_gzip ; end
         def unbundle_command(into, options) ; super.insert(1, '-z') ; end
         def bundle_command(from, options)   ; super.insert(1, '-z') ; end
@@ -99,7 +92,7 @@ module Swineherd
 
       module TarBzip
         extend Gorillib::Concern
-        BUNDLE_KINDS[:tar_bzip] = { :fileext => 'tar.bz2', :fileext_re => /\.(tar\.bz2|tbz)/, :mixins => [Tar, self]}
+        FILE_TYPE_INFO[:tar_bzip][:mixins] = [Tar, self]
         def file_type() :tar_bzip ; end
         def unbundle_command(into, options) ; super.insert(1, '-j') ; end
         def bundle_command(from, options)   ; super.insert(1, '-j') ; end

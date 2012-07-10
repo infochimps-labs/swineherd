@@ -1,29 +1,52 @@
 module Swineherd
-  class FileResource < Pathname
-
-    include Swineherd::Resource::Bundle
+  class FileAsset < Asset
     include Gorillib::Model
 
-    def inspect
-      "#<FileResource:#{to_s}>"
-    end
+    field :path,        Pathname, position: 1
+    field :host,        String
+    field :scheme,      Symbol
 
-    def normalize(obj)
-      return obj if obj.nil?
-      obj.is_a?(self.class) ? obj : self.class.new(obj)
-    end
+    delegate :basename, :dirname, :extname, :corename, :size, :open, :to_path, to: :path
+    delegate :exist? , :directory?, :file?, :symlink?, :readable?, :writable?, :executable?, to: :path
+    def absent?() not path.exist? ; end
+    def bytesize() size ; end
 
-    # @returns the basename without extension (using self.extname as the extension)
-    def corename
-      basename(self.extname)
+    # Info about different file formats
+    FILETYPE_INFO = Hash.new{|h,k| h[k] = Hash.new } unless defined?(FILETYPE_INFO) # autovivifying
+
+    FILETYPE_INFO.merge!(
+      tar:      { fileext: 'tar',     fileext_re: /\.(tar)$/,          compressed: false,  container: true, },
+      tar_gzip: { fileext: 'tar.gz',  fileext_re: /\.(tar\.gz|tgz)$/,  compressed: true,   container: true,  },
+      tar_bzip: { fileext: 'tar.bz2', fileext_re: /\.(tar\.bz2|tbz)$/, compressed: true,   container: true, },
+      bzip:     { fileext: 'bz2',     fileext_re: /\.(bz2)$/,          compressed: true, },
+      gzip:     { fileext: 'gz',      fileext_re: /\.(gz)$/,           compressed: true, },
+      zip:      { fileext: 'zip',     fileext_re: /\.(zip)$/,          compressed: true, },
+      )
+    def self.filetype_info(kind) FILETYPE_INFO[kind]                ; end
+    def filetype_info()          self.class.filetype_info(filetype) ; end
+    #
+    def self.fileext_re(kind)    filetype_info(kind)[:fileext_re] ; end
+    def self.fileext(kind)       filetype_info(kind)[:fileext]    ; end
+    def compressed?(kind)        filetype_info(kind)[:compressed] ; end
+    def container?(kind)         filetype_info(kind)[:container]  ; end
+    #
+    def compressed?()            filetype_info[:compressed]       ; end
+    def container?()             filetype_info[:container]        ; end
+
+    def filetype
+      case extname
+      when /\.tar\.bz2$/, /\.tbz$/   then :tar_bzip
+      when /\.tar\.gz$/,  /\.tgz$/   then :tar_gzip
+      when /\.zip$/                  then :zip
+      when /\.gz$/                   then :gzip
+      when /\.bz2$/                  then :bzip
+      else nil
+      end
     end
 
     def relpath_to(*args)
-      self.class.relative_path_to(*args)
+      Pathname.relative_path_to(*args)
     end
-
-
-    def absent?() not exist? ; end
 
     def check_absent!(on_exists=:fail)
       return true if absent?
@@ -42,32 +65,13 @@ module Swineherd
       end
     end
 
-    def file_kind
-      case extname
-      when /\.tar\.bz2$/, /\.tbz$/   then :tar_bzip
-      when /\.tar\.gz$/,  /\.tgz$/   then :tar_gzip
-      when /\.zip$/                  then :zip
-      when /\.gz$/                   then :gzip
-      when /\.bz2$/                  then :bzip
-      else nil
-      end
-    end
-
-    def file_kind!
-      file_kind or raise Swineherd::ResourceActionError, "Cannot identify #{self} -- #{extname} doesn't match a known type"
-    end
-
-    # Decorate the resource with methods appropriate for its bundle type
-    def bundleize(bundle_type = nil)
-      bundle_type ||= self.file_kind!
-      bundle_info =  BUNDLE_KINDS[bundle_type] or raise Swineherd::ResourceActionError, "Tried to bundlize #{self} as #{bundle_type.inspect}, which is not a bundle type"
-      extend Swineherd::Resource::Bundle
-      bundle_info[:mixins].each{|mixin| extend(mixin) }
-      self
+    def self.table_fields() [:name, :path, :mb, :filetype, :compressed?] ; end
+    def table_attributes
+      super.tap{|attrs| attrs[:mb] = attrs[:mb].to_f.round(0) }
     end
   end
 
-  class DirectoryResource < FileResource
+  class DirectoryAsset < FileAsset
   end
 
 end
