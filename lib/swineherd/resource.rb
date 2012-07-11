@@ -5,11 +5,14 @@
 # require 'stringio'
 # require 'securerandom'
 
+require 'ostruct'
+require 'benchmark'
+
 require 'multi_json'
 require 'formatador'
 require 'posix-spawn'
-require 'ostruct'
 
+require 'gorillib/some'
 require 'gorillib/pathname'
 require 'gorillib/model'
 require 'gorillib/builder'
@@ -54,6 +57,7 @@ module Swineherd
     #
     :shrd_dir      => File.expand_path('../..', File.dirname(__FILE__)),
     :shrd_examples => [:shrd_dir, 'examples'],
+    :shrd_example_data => [:shrd_dir, 'data'],
     )
 
   # Executable programs

@@ -3,6 +3,7 @@ module Swineherd
     include Gorillib::Model
     include SimpleUnits
     include SimpleUnits::HasDuration
+    include Benchmark
 
     field :input,    Asset,    position: 0, doc: "asset consumed by this run"
     field :product,  Asset,    position: 1, doc: "asset produced by this run"
@@ -11,10 +12,18 @@ module Swineherd
     field :beg_time, Time,   doc: "Start time"
     field :end_time, Time,   doc: "End time"
 
-    def run
+    # @param cmd_runner [Swineherd::Resource::CommandRunner, #run] specify a command to run
+    # @param argv       [Array[String]] arguments to the command
+    # @yield block to run
+    #
+    # @return return value of `cmd_runner.run` or the given block
+    def run(cmd_runner=nil, argv=[])
+      raise ArgumentError, "Please supply a block or a runner" unless (cmd_runner.respond_to?(:run) ^ block_given?)
       self.beg_time = Time.now
-      yield
+      if block_given? then result = yield
+      else                 result = cmd_runner.run(argv) ; end
       self.end_time = Time.now
+      result
     end
 
     def duration

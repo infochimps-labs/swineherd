@@ -2,9 +2,10 @@ require 'spec_helper'
 require 'swineherd/resource'
 require 'swineherd/resource/command_runner'
 
+Pathname.register_default_paths(:usr_dict_words => [ENV['USR_DICT_WORDS'], '/usr/share/dict/words', '/usr/dict/words'].detect{|f| f && File.exist?(f)})
 
 describe Swineherd::Resource::CommandRunner do
-  let(:example_input){ Pathname.path_to(:shrd_dir, 'README.md') }
+  let(:example_input){ Pathname.path_to(:shrd_example_data, 'text', 'jabberwocky.txt') }
   let(:fancy_command){
     described_class.new(
       Pathname.path_to(:shrd_examples, 'utils', 'test_script.rb'),
@@ -18,7 +19,6 @@ describe Swineherd::Resource::CommandRunner do
     @stdout = MultiJson.load(stdout) rescue {unparseable: stdout}
     @stderr = MultiJson.load(stderr) rescue {unparseable: stderr}
     @success = success
-    p [@stdout, @stderr, @success, cmd.errors]
     [@stdout, @stderr, @success]
   end
   
@@ -43,16 +43,15 @@ describe Swineherd::Resource::CommandRunner do
     end
 
     context 'reading input' do
-      it 'is an error if the input is incomplete' do
-        subject.input_filename = example_input
-        subject.bufsize = 10
+      it 'is not an error if the input is incomplete, because for some reason the whole thing gets written even if input has closed.' do
+        subject.input_filename = '/usr/share/dict/web2' # example_input
         run_example_script(subject, ['--read_stdin=fail'])
-        subject.errors.first.should =~ /Incomplete read of /
-        @stdout['input'].should == '# Swine'
+        subject.errors.first.should(be_a Errno::EPIPE)
+        subject.errors.first.to_s.should =~ /Broken pipe/
       end
-      it 'reads from an input script if given' do
+      it 'reads from an input file if given' do
         stdout, stderr, success = wc_command.run
-        p [stdout, stderr, success, wc_command.errors]
+        stdout.should =~ /\A\s+36\s+180\s+1056\s*\z/
       end
     end
 
@@ -60,6 +59,8 @@ describe Swineherd::Resource::CommandRunner do
       it 'is in the exitstatus attribute' do
         run_example_script(subject, ['--exitstatus=69'])
         subject.exitstatus.should == 69
+        subject.success?.should be_false
+        @success.should be_false
       end
     end
 

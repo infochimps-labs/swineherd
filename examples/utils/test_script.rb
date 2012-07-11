@@ -21,7 +21,7 @@ info = {
 case Settings.read_stdin.to_s
 when 'true'      then info[:input] = $stdin.read
 when '', 'false' then info[:input] = nil
-when 'fail'      then info[:input] = $stdin.read(7) ; $stdin.close
+when 'fail'      then info[:input] = $stdin.read(11) ; $stdin.close 
 else warn "Don't understand value for read_stdin: #{Settings.read_stdin}"
 end
 

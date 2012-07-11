@@ -19,6 +19,7 @@ module Swineherd
       field :env,             Hash,     default: Hash.new
       field :chdir,           Pathname
       field :unsetenv_others, :boolean
+      field :input_sent,      Integer,  doc: "Count of input bytes delivered. Nil if no input stream; zero means input stream but no data sent."
       field :input_filename,  Pathname, tester: true
       field :output_filename, Pathname, tester: true
 
@@ -49,6 +50,10 @@ module Swineherd
         compact_attributes.slice(:chdir, :unsetenv_others)  # umask rlimit_{cpu,cpor,data} pgroup
       end
 
+      def inspect_helper
+        super.tap{|attrs| attrs.merge!({exitstatus: exitstatus, errors: errors}.compact_blank) if last_status }
+      end
+
       def description(argv=[])
         str = "'#{command}"
         str << " #{argv.join(" ")}" if argv.present?
@@ -65,16 +70,15 @@ module Swineherd
         raise ArgumentError, "Don't forking use this for the forking version: #{command} should not be '-'"  if command.to_s == '-'
         reset!
         if noop then Log.info(":noop set, skipping execution of #{self.description(argv)}") ; return ['', '', 0] ; end
-        Log.debug{ self.description(argv) }
+        # Log.debug{ self.description(argv) }
 
         # launch the command
         @pid, @pr_stdin, @pr_stdout, @pr_stderr = ::POSIX::Spawn.popen4(env.stringify_keys, command.to_s, *argv, spawn_options)
-        p [env.stringify_keys, command.to_s, *argv, spawn_options, input_stream]
 
         # prepare streams
         @pr_froms = [pr_stdout, pr_stderr]
         @pr_intos = [pr_stdin]
-        if not input_stream then pr_stdin.close ; pr_intos.delete(pr_stdin) ; end
+        if not input_stream then pr_stdin.close ; pr_intos.delete(pr_stdin) ; @input_sent = nil end
 
         # provide input, consume output...
         while running?
@@ -101,14 +105,14 @@ module Swineherd
     protected
 
       def reset!
-        @last_status = nil ; @errors = []
+        @last_status = nil ; @errors = [] ; @input_sent = 0
         @input_stream = nil; @output_stream = nil; @error_stream = nil
       end
 
       def write_to_process(fd)
         input_chunk = input_stream.read(bufsize)
         size = fd.write(input_chunk)
-        p [input_chunk, size, input_chunk && input_chunk.bytesize]
+        @input_sent += size
         if    (not input_chunk)             then close_input_streams
         elsif (size < input_chunk.bytesize) then close_input_streams ; errors << "Incomplete read of #{self}"
         end
