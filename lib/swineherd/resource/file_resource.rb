@@ -45,7 +45,7 @@ module Swineherd
     end
 
     def relpath_to(*args)
-      Pathname.relative_path_to(*args)
+      Pathname.relpath_to(*args)
     end
 
     def check_absent!(on_exists=:fail)

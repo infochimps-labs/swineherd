@@ -50,7 +50,7 @@ module Swineherd
         compact_attributes.slice(:chdir, :unsetenv_others)  # umask rlimit_{cpu,cpor,data} pgroup
       end
 
-      def inspect_helper
+      def to_inspectable
         super.tap{|attrs| attrs.merge!({exitstatus: exitstatus, errors: errors}.compact_blank) if last_status }
       end
 
