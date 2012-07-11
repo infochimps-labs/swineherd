@@ -55,27 +55,16 @@ module Swineherd
     end
 
     def self.table_fields()
-      [:input, :product, :duration, :min_per_gb, :cost, :cost_per_gb, :input_mb, :output_mb, :executor]
-    end
-    def table_attributes
-      super.tap do |hsh|
-        hsh.merge!(
-          input_mb:      mb(:input),
-          output_mb:     mb(:product),
-          )
-        hsh[:input]    = input.name
-        hsh[:product]  = product.name
-        hsh[:executor] = executor.name
-      end
-    end
-    def self.table_fixup()
-      super.merge(
-        input_mb:      ->(val){ val.to_f.round(3) },
-        output_mb:     ->(val){ val.to_f.round(3) },
-        min_per_gb:    ->(val){ val.to_f.round(3) },
-        cost:          ->(val){ val.to_f.round(6) },
-        cost_per_gb:   ->(val){ val.to_f.round(2) },
-        )
+      { input:       ->(val){ val.name },
+        product:     ->(val){ val.name },
+        duration:    ->(val){ val.to_f.round(6) },
+        min_per_gb:  ->(val){ val.to_f.round(3) },
+        cost:        ->(val){ val.to_f.round(6) },
+        cost_per_gb: ->(val){ val.to_f.round(3) },
+        input_mb:    ->{ mb(:input)   and mb(:input  ).round(0) },
+        output_mb:   ->{ mb(:product) and mb(:product).round(0) },
+        executor:    ->(val){ val.name },
+        }
     end
   end
 end

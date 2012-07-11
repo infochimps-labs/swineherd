@@ -1,5 +1,3 @@
-h1. SwineHerd
-
 Swineherd is for running scripts and workflows on filesystems.
 
 h3. Outline

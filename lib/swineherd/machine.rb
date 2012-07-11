@@ -23,12 +23,10 @@ module Swineherd
     end
 
     def self.table_fields()
-      [:name, :ram, :cpus, :cores, :core_speed, :network, :cost_per_hour, :cost_per_day ]
-    end
-    def self.table_fixup()
-      super.merge(
-        cost_per_hour: ->(val){ val.to_f.round(4) },
-        cost_per_day:  ->(val){ val.to_f.round(2) }, )
+      { name: true, ram: true, cpus: true, cores: true, core_speed: true, network: true,
+        cost_per_hour: ->(val){ val.to_f.round(6) },
+        cost_per_day:  ->(val){ val.to_f.round(3) },
+      }
     end
   end
 

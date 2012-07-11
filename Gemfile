@@ -8,9 +8,10 @@ gem   'oj',          ">= 1.2"
 gem   'json',                    :platform => :jruby
 
 gem   'erubis',      ">= 2.7"
-gem   'right_aws',   ">= 3.0.4"
-
+# gem   'right_aws',   ">= 3.0.4"
 gem   'formatador'
+gem   'posix-spawn'
+gem   'addressable'
 
 # Only gems that you want listed as development dependencies in the gemspec
 group :development do

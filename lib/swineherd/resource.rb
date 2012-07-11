@@ -1,10 +1,14 @@
-# require 'posix/spawn'
 
 # require 'fileutils'
 # require 'tmpdir'
 # require 'uri'
 # require 'stringio'
 # require 'securerandom'
+
+require 'multi_json'
+require 'formatador'
+require 'posix-spawn'
+require 'ostruct'
 
 require 'gorillib/pathname'
 require 'gorillib/model'
@@ -14,21 +18,18 @@ require 'gorillib/hash/keys'
 require "gorillib/metaprogramming/delegation"
 require "gorillib/io/system_helpers"
 require "gorillib/enumerable/sum"
-
-require 'formatador'
+require 'gorillib/logger/log'
 
 require 'swineherd/error'
 
-require 'swineherd/resource/simple_units'
+require 'swineherd/resource/command_runner'
 
-require 'swineherd/resource/spawn'
+require 'swineherd/resource/simple_units'
 require 'swineherd/resource/asset'
 require 'swineherd/resource/file_resource'
 
 require 'swineherd/machine'
 require 'swineherd/executor'
-
-require 'swineherd/resource/command'
 
 require 'swineherd/run_stats'
 
@@ -44,13 +45,15 @@ module Swineherd
 
   # data locations
   Pathname.register_default_paths(
-    :log_dir  => '/tmp/data/log',
-    :ripd_dir => '/tmp/data/ripd',
-    :rawd_dir => '/tmp/data/rawd',
-    :mraw_dir => '/tmp/data/mraw',
+    :data_dir      => '/tmp/data',
+    :mini_dir      => '/tmp/mini',
     #
-    :full_dir => '/tmp/data/full',
-    :mini_dir => '/tmp/data/mini',
+    :log_dir       => [:data_dir, 'log'],
+    :ripd_dir      => [:data_dir, 'ripd'],
+    :rawd_dir      => [:data_dir, 'rawd'],
+    #
+    :shrd_dir      => File.expand_path('../..', File.dirname(__FILE__)),
+    :shrd_examples => [:shrd_dir, 'examples'],
     )
 
   # Executable programs
