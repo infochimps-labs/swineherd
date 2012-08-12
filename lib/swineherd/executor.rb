@@ -5,9 +5,9 @@ module Swineherd
   class Executor
     include Gorillib::Model
 
-    field :name,     Symbol, position: 0
-    field :machines, MachineCollection, position: 1
-    field :machine_count, Integer, doc: "number of machines", default: 1
+    field :name,          Symbol,            position: 0
+    field :machines,      MachineCollection, position: 1
+    field :machine_count, Integer, default: 1, doc: "number of machines"
 
     def cost_per_sec
       machines.values.sum{|machine| machine.cost_per_sec }

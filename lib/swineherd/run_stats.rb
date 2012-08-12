@@ -17,7 +17,7 @@ module Swineherd
     # @yield block to run
     #
     # @return return value of `cmd_runner.run` or the given block
-    def run(cmd_runner=nil, argv=[])
+    def run(cmd_runner=nil, *argv)
       raise ArgumentError, "Please supply a block or a runner" unless (cmd_runner.respond_to?(:run) ^ block_given?)
       self.beg_time = Time.now
       if block_given? then result = yield

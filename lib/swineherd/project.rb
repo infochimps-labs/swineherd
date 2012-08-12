@@ -2,12 +2,8 @@ module Swineherd
   class Project
     include Gorillib::Builder
 
-    field :name,     Symbol, :doc => 'name of this project'
-    field :category, Symbol, :doc => 'category to organize this project under'
-
-    def self.make(cat, name, attrs={}, &block)
-      receive(attrs.merge(:category => cat, :name => name), &block)
-    end
+    field :name,     Symbol, position: 0, doc: 'name of this project'
+    field :category, Symbol, position: 1, doc: 'category to organize this project under'
 
     def directory(*args, &block)
       Swineherd::DirectoryResource.new(*args, &block)
@@ -16,7 +12,6 @@ module Swineherd
     def project_path(*args)
       Swineherd::FileResource.path_to(:rawd_dir, category.to_s, name.to_s, *args)
     end
-
 
   end
 end

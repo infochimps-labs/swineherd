@@ -19,7 +19,6 @@ module Swineherd
   end
 
   class Workflow
-
     include SwineHerd::AllOptions
 
     def initialize options = {}, &blk
@@ -30,11 +29,11 @@ module Swineherd
       @flow_options = {
         INPUT_TEMPLATES        => ["/user/$user/data/$project/$stage-$run_number-$epoch"],
         OUTPUT_TEMPLATES       => ["/user/$user/data/$project/$stage-$run_number-$epoch"],
-        INTERMEDIATE_TEMPLATES => ["/user/$user/tmp/$project/$stage-$run_number-$epoch"],
+        INTERMEDIATE_TEMPLATES => ["/user/$user/tmp/$project/$stage-$run_number-$epoch" ],
         PROJECT                => options [PROJECT]
       }
 
-      is_a_flow_option = lambda do |k,v|
+      is_a_flow_option = ->(k,v) do
         SwineHerd::WorkflowOptions.constants.map do |key|
           SwineHerd::WorkflowOptions.const_get key
         end.index k
@@ -170,9 +169,8 @@ module Swineherd
 
       ## run the job
       sh script.cmd do |ok, status|
-        ok ?
-        script.write_success_flag :
-          raise("Stage #{name} perished with exit status #{status}.")
+        raise("Stage #{name} perished with exit status #{status}.") unless ok
+        script.write_success_flag
       end
     end
   end
